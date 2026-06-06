@@ -1,0 +1,94 @@
+{
+  "_meta": {
+    "description": "Day-7 wandering trajectory — drives Scenario B (7-Day Trend) and Scenario C. Outward drift from home cluster, culminating in wandering_detected. Mirrors trend_7day.json day-7 GPS values.",
+    "owner": "Tanmay",
+    "note": "Dates are relative offsets matching trend_7day.json structure. Start density ~0.91 (normal), declining to 0.09 (wander). PRD §5.4 wander coords: lat 22.5512, lng 114.0701."
+  },
+  "days": [
+    {
+      "day": 5,
+      "label": "Early drift",
+      "events": [
+        {
+          "event_type": "location_update",
+          "source": "gps_tracker",
+          "timestamp": "2026-06-11T11:00:00Z",
+          "confidence": 0.97,
+          "payload": {
+            "lat": 22.5440,
+            "lng": 114.0590,
+            "distance_from_home_m": 750,
+            "trajectory_density_score": 0.72,
+            "baseline_cluster_match": true
+          }
+        }
+      ]
+    },
+    {
+      "day": 6,
+      "label": "Further drift",
+      "events": [
+        {
+          "event_type": "location_update",
+          "source": "gps_tracker",
+          "timestamp": "2026-06-12T10:50:00Z",
+          "confidence": 0.97,
+          "payload": {
+            "lat": 22.5448,
+            "lng": 114.0598,
+            "distance_from_home_m": 890,
+            "trajectory_density_score": 0.61,
+            "baseline_cluster_match": true
+          }
+        }
+      ]
+    },
+    {
+      "day": 7,
+      "label": "Wandering",
+      "cosine_distance": 0.38,
+      "events": [
+        {
+          "event_type": "location_update",
+          "source": "gps_tracker",
+          "timestamp": "2026-06-13T14:05:00Z",
+          "confidence": 0.97,
+          "payload": {
+            "lat": 22.5468,
+            "lng": 114.0625,
+            "distance_from_home_m": 1350,
+            "trajectory_density_score": 0.28,
+            "baseline_cluster_match": false
+          }
+        },
+        {
+          "event_type": "location_update",
+          "source": "gps_tracker",
+          "timestamp": "2026-06-13T14:25:00Z",
+          "confidence": 0.97,
+          "payload": {
+            "lat": 22.5489,
+            "lng": 114.0655,
+            "distance_from_home_m": 1600,
+            "trajectory_density_score": 0.14,
+            "baseline_cluster_match": false
+          }
+        },
+        {
+          "event_type": "wandering_detected",
+          "source": "gps_tracker",
+          "timestamp": "2026-06-13T14:39:00Z",
+          "confidence": 0.96,
+          "payload": {
+            "lat": 22.5512,
+            "lng": 114.0701,
+            "distance_from_home_m": 1800,
+            "trajectory_density_score": 0.09,
+            "baseline_cluster_match": false,
+            "minutes_outside_baseline_footprint": 34
+          }
+        }
+      ]
+    }
+  ]
+}
