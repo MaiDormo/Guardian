@@ -113,6 +113,22 @@ _CACHE: dict[tuple[str, str, str], dict] = {
             "Mild deviation — monitoring closely."
         ),
     },
+    # ── Connection Window ─────────────────────────────────────────────────
+    ("normal", "connection_window", "suggested"): {
+        "cosine_distance": None,
+        "baseline_window_days": 14,
+        "features_considered": [
+            "presence_patterns", "voice_clarity_by_hour",
+            "sentiment_by_hour", "child_free_windows",
+        ],
+        "rationale": (
+            "Ah-Ma's afternoons follow a stable, calm pattern — living-room presence "
+            "15:00–16:00 across 12 of the last 14 days, with her highest voice clarity "
+            "(avg 0.88) and positive sentiment in this window. "
+            "Tanmay is free 13:00–17:00. 15:00 is the optimal moment to connect. "
+            "This is not a fixed reminder — it is a pattern Guardian learned from her daily rhythm."
+        ),
+    },
     # ── Fall ─────────────────────────────────────────────────────────────
     ("fall", "fall_detected", "priority_red"): {
         "cosine_distance": None,

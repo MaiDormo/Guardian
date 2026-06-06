@@ -88,9 +88,10 @@ def test_every_cache_entry_has_features_list():
 
 
 def test_cached_signal_names_are_valid():
-    """Cached signal names must be in the PRD § 5.1 signal list (or fall_detected)."""
+    """Cached signal names must be in the PRD § 5.1 signal list, fall_detected,
+    or the advisory 'connection_window' key (not a health signal)."""
     from agent import _CACHE
-    valid = PRD_SIGNALS | {"fall_detected"}
+    valid = PRD_SIGNALS | {"fall_detected", "connection_window"}
     for (_, signal, _) in _CACHE:
         assert signal in valid, (
             f"Cache key uses unknown signal '{signal}' — not in PRD § 5.1"

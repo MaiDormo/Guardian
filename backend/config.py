@@ -45,3 +45,9 @@ HOME_LNG: float = 114.0579
 ACTIVE_SOURCES: frozenset[str] = frozenset(
     {"voice_system", "pill_dispenser", "gps_tracker"}
 )
+
+# Connection window inference
+CONNECTION_BASELINE_DAYS: int = 14     # days of presence history to query
+CONNECTION_WINDOW_START_H: int = 10    # earliest waking hour to consider
+CONNECTION_WINDOW_END_H: int = 20      # latest hour to consider
+CONNECTION_MIN_PRESENCE_FREQ: int = 3  # minimum days to count a recurring hour

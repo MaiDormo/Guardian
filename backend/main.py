@@ -63,6 +63,14 @@ except ImportError:
     _agent = None
     log.info("agent.py not found — reasoning log will be unavailable")
 
+try:
+    from connection import compute_connection_window, load_prefs  # type: ignore
+    HAS_CONNECTION = True
+    log.info("connection.py loaded ✓")
+except ImportError:
+    HAS_CONNECTION = False
+    log.info("connection.py not found — connection window will use stub")
+
 # ---------------------------------------------------------------------------
 # In-memory signal state
 # ---------------------------------------------------------------------------
@@ -431,6 +439,10 @@ class InterventionRequest(BaseModel):
     location: str = "Shenzhen"
 
 
+class ConnectionRequest(BaseModel):
+    note: str = ""  # optional personal note from the child to include in the WhatsApp nudge
+
+
 # ---------------------------------------------------------------------------
 # App lifecycle
 # ---------------------------------------------------------------------------
@@ -607,8 +619,117 @@ async def trigger_intervention(body: InterventionRequest) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Connection window routes
+# ---------------------------------------------------------------------------
+
+@app.get("/api/connection-window")
+async def connection_window() -> dict:
+    """
+    Return the best time for the child to call Ah-Ma, inferred from her
+    14-day presence + voice baseline. No cloud. No calendar OAuth.
+    """
+    if HAS_CONNECTION:
+        prefs = await asyncio.to_thread(load_prefs)
+        result = await asyncio.to_thread(compute_connection_window, prefs)
+    else:
+        result = _connection_window_stub()
+
+    # Also broadcast as SSE so the dashboard card updates live
+    await _broadcast({"event": "connection_window", "payload": result})
+    return result
+
+
+@app.post("/trigger/connection")
+async def trigger_connection(body: ConnectionRequest) -> dict:
+    """
+    Send a gentle WhatsApp nudge to the child: Ah-Ma seems calm, good time to call.
+    Softer than /trigger/intervention — no red alert language.
+    Returns overlay payload within 500ms regardless of WhatsApp result.
+    """
+    if HAS_CONNECTION:
+        prefs = await asyncio.to_thread(load_prefs)
+        window = await asyncio.to_thread(compute_connection_window, prefs)
+    else:
+        window = _connection_window_stub()
+
+    now = _ts()
+    best = window.get("best_window", "15:00-16:00")
+    rationale = window.get("rationale", "")
+    note_str = f" · Note: {body.note}" if body.note else ""
+
+    message = (
+        f"💚 Guardian · Ah-Ma is calm and present right now ({best}). "
+        f"A good moment to call her.{note_str}"
+    )
+
+    whatsapp_sent = False
+    if WHATSAPP_TOKEN and WHATSAPP_PHONE_ID:
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                resp = await client.post(
+                    f"https://graph.facebook.com/v20.0/{WHATSAPP_PHONE_ID}/messages",
+                    headers={
+                        "Authorization": f"Bearer {WHATSAPP_TOKEN}",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "messaging_product": "whatsapp",
+                        "to": CAREGIVER_PHONE,
+                        "type": "text",
+                        "text": {"body": message},
+                    },
+                )
+                whatsapp_sent = resp.status_code == 200
+                log.info("Connection nudge WhatsApp: %s (%d)",
+                         "OK" if whatsapp_sent else "FAILED", resp.status_code)
+        except Exception as exc:
+            log.warning("Connection nudge WhatsApp error: %s", exc)
+    else:
+        log.info("WhatsApp not configured — connection nudge overlay-only")
+
+    ack = {
+        "event": "connection_ack",
+        "payload": {
+            "dispatched": True,
+            "channel": "whatsapp" if whatsapp_sent else "overlay_only",
+            "best_window": best,
+            "rationale": rationale,
+            "message_preview": message,
+            "updated_at": now,
+        },
+    }
+    await _broadcast(ack)
+
+    return {
+        "status": "dispatched",
+        "whatsapp_sent": whatsapp_sent,
+        "best_window": best,
+        "overlay_message": f"Great time to call — Ah-Ma is calm right now ({best})",
+        "message_preview": message,
+        "timestamp": now,
+    }
+
+
+# ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+def _connection_window_stub() -> dict:
+    """Fallback when connection.py is unavailable."""
+    return {
+        "best_window": "15:00-16:00",
+        "best_hour": 15,
+        "overlap_with_child": True,
+        "confidence": "moderate",
+        "evidence": {"presence_days": None, "baseline_days": 14,
+                     "avg_clarity": None, "positivity_rate": None},
+        "rationale": (
+            "Ah-Ma is typically calm and present in the early afternoon. "
+            "You are free at this time."
+        ),
+        "updated_at": _ts(),
+    }
+
 
 def _build_signal_summary() -> str:
     parts = []

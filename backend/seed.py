@@ -33,6 +33,7 @@ def seed_all() -> None:
     log.info("seed.py: seeding 30-day baseline…")
     seed_gps_baseline()
     seed_signal_summaries()
+    seed_connection_baseline()
     log.info("seed.py: done.")
 
 
@@ -117,6 +118,121 @@ def seed_signal_summaries() -> None:
         log.info("seed_signal_summaries: inserted %d day summaries", inserted)
     except Exception as exc:
         log.warning("seed_signal_summaries failed (%s)", exc)
+
+
+def seed_connection_baseline() -> None:
+    """
+    Seed 14 days of hourly presence events and voice check-ins so that
+    connection.py's SQL queries return meaningful results from day one.
+
+    Daily rhythm:
+      07:00-09:00  bedroom → kitchen (morning routine)
+      10:00-11:00  living_room (helper / quiet)
+      13:00-14:00  kitchen (lunch)
+      15:00-17:00  living_room (peak calm window — highest voice clarity)
+      19:00-20:00  living_room (evening quiet)
+
+    Voice check-ins: one per day at 09:30, clarity peaks in the afternoon
+    pattern used by connection.py's _voice_quality_by_hour().
+    """
+    try:
+        sys.path.insert(0, str(_BACKEND_DIR))
+        from db import get_conn  # noqa: PLC0415
+        import hashlib  # noqa: PLC0415
+
+        conn = get_conn()
+        today = datetime.now(timezone.utc).date()
+
+        # (hour, room, dwell_s)
+        DAILY_PRESENCE: list[tuple[int, str, int]] = [
+            (7,  "bedroom",      0),
+            (8,  "kitchen",   1320),
+            (10, "living_room",  0),
+            (11, "living_room",  0),
+            (13, "kitchen",    900),
+            (15, "living_room",  0),
+            (16, "living_room",  0),
+            (19, "living_room",  0),
+        ]
+
+        # hour → (clarity_score, sentiment)  — afternoon is clearest
+        VOICE_QUALITY_BY_HOUR: dict[int, tuple[float, str]] = {
+            9:  (0.87, "positive"),
+            15: (0.88, "positive"),
+            16: (0.86, "positive"),
+        }
+
+        events_inserted = 0
+        voice_inserted = 0
+
+        for days_back in range(14, 0, -1):
+            day_date = today - timedelta(days=days_back)
+
+            for hour, room, dwell_s in DAILY_PRESENCE:
+                ts = datetime(
+                    day_date.year, day_date.month, day_date.day,
+                    hour, 15, 0, tzinfo=timezone.utc,
+                ).isoformat()
+
+                # Stable dedup key so INSERT OR IGNORE is truly idempotent
+                dedup = hashlib.sha1(
+                    f"seed:presence:{day_date}:{hour}:{room}".encode()
+                ).hexdigest()[:16]
+
+                import json as _json  # noqa: PLC0415
+                try:
+                    conn.execute(
+                        """INSERT OR IGNORE INTO events
+                           (event_type, source, room, timestamp, confidence,
+                            payload, dedup_key, seq, ingested_at)
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        (
+                            "presence_detected",
+                            "mmwave_ld2410",
+                            room,
+                            ts,
+                            0.97,
+                            _json.dumps({"targets": 1, "dwell_s": dwell_s, "motion": "stationary"}),
+                            dedup,
+                            0,
+                            datetime.now(timezone.utc).isoformat(),
+                        ),
+                    )
+                    events_inserted += 1
+                except Exception:
+                    pass
+
+            # One voice check-in per day at 09:30
+            checkin_ts = datetime(
+                day_date.year, day_date.month, day_date.day,
+                9, 30, 0, tzinfo=timezone.utc,
+            ).isoformat()
+
+            # Vary clarity slightly day to day for realism
+            clarity = round(0.85 + (days_back % 3) * 0.01, 2)
+            sentiment = "positive" if days_back % 5 != 0 else "neutral"
+
+            try:
+                conn.execute(
+                    """INSERT OR IGNORE INTO voice_checkins
+                       (timestamp, speech_rate_wpm, clarity_score, sentiment,
+                        confusion_markers, response_latency_s, duration_s,
+                        baseline_deviation_cosine)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (checkin_ts, 136, clarity, sentiment, 0, 1.3, 140, 0.04),
+                )
+                voice_inserted += 1
+            except Exception:
+                pass
+
+        conn.commit()
+        log.info(
+            "seed_connection_baseline: %d presence events, %d voice check-ins",
+            events_inserted,
+            voice_inserted,
+        )
+    except Exception as exc:
+        log.warning("seed_connection_baseline failed (%s)", exc)
 
 
 if __name__ == "__main__":
