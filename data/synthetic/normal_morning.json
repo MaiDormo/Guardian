@@ -1,0 +1,155 @@
+{
+  "_meta": {
+    "description": "One representative normal morning — used by ingestion.py to seed the 30-day baseline.",
+    "date": "2026-05-07",
+    "owner": "Elia",
+    "speed": "real-time offsets in minutes from 00:00"
+  },
+  "events": [
+    {
+      "event_type": "breathing_update",
+      "source": "mmwave_mr60bha2",
+      "room": "bedroom",
+      "timestamp": "2026-05-07T00:10:00Z",
+      "confidence": 0.93,
+      "payload": { "rate_bpm": 14, "in_baseline": true, "overnight_dwell_h": 7.8 }
+    },
+    {
+      "event_type": "presence_detected",
+      "source": "mmwave_ld2410",
+      "room": "bedroom",
+      "timestamp": "2026-05-07T07:21:00Z",
+      "confidence": 0.97,
+      "payload": { "targets": 1, "dwell_s": 0, "motion": "moving" }
+    },
+    {
+      "event_type": "presence_ended",
+      "source": "mmwave_ld2410",
+      "room": "bedroom",
+      "timestamp": "2026-05-07T07:36:00Z",
+      "confidence": 0.97,
+      "payload": {}
+    },
+    {
+      "event_type": "presence_detected",
+      "source": "mmwave_ld2410",
+      "room": "bathroom",
+      "timestamp": "2026-05-07T07:36:30Z",
+      "confidence": 0.97,
+      "payload": { "targets": 1, "dwell_s": 0, "motion": "moving" }
+    },
+    {
+      "event_type": "presence_ended",
+      "source": "mmwave_ld2410",
+      "room": "bathroom",
+      "timestamp": "2026-05-07T07:56:00Z",
+      "confidence": 0.97,
+      "payload": {}
+    },
+    {
+      "event_type": "presence_detected",
+      "source": "mmwave_ld2410",
+      "room": "kitchen",
+      "timestamp": "2026-05-07T07:56:30Z",
+      "confidence": 0.97,
+      "payload": { "targets": 1, "dwell_s": 1320, "motion": "stationary" }
+    },
+    {
+      "event_type": "dispenser_opened",
+      "source": "pill_dispenser",
+      "timestamp": "2026-05-07T08:12:00Z",
+      "confidence": 1.0,
+      "payload": { "compartment": "morning", "expected_window_start": "08:00", "delta_minutes": 12 }
+    },
+    {
+      "event_type": "presence_ended",
+      "source": "mmwave_ld2410",
+      "room": "kitchen",
+      "timestamp": "2026-05-07T08:18:30Z",
+      "confidence": 0.97,
+      "payload": {}
+    },
+    {
+      "event_type": "multi_presence_detected",
+      "source": "mmwave_ld2410",
+      "room": "living_room",
+      "timestamp": "2026-05-07T10:02:00Z",
+      "confidence": 0.94,
+      "payload": { "targets": 2, "motion": "mixed" }
+    },
+    {
+      "event_type": "voice_checkin_completed",
+      "source": "voice_system",
+      "timestamp": "2026-05-07T10:05:00Z",
+      "confidence": 0.91,
+      "payload": {
+        "speech_rate_wpm": 138,
+        "clarity_score": 0.87,
+        "sentiment": "positive",
+        "confusion_markers": false,
+        "response_latency_s": 1.2,
+        "duration_s": 142
+      }
+    },
+    {
+      "event_type": "location_update",
+      "source": "gps_tracker",
+      "timestamp": "2026-05-07T11:15:00Z",
+      "confidence": 0.97,
+      "payload": {
+        "lat": 22.5431,
+        "lng": 114.0579,
+        "distance_from_home_m": 620,
+        "trajectory_density_score": 0.91,
+        "baseline_cluster_match": true
+      }
+    },
+    {
+      "event_type": "presence_detected",
+      "source": "mmwave_ld2410",
+      "room": "kitchen",
+      "timestamp": "2026-05-07T12:28:00Z",
+      "confidence": 0.97,
+      "payload": { "targets": 1, "dwell_s": 900, "motion": "stationary" }
+    },
+    {
+      "event_type": "presence_ended",
+      "source": "mmwave_ld2410",
+      "room": "kitchen",
+      "timestamp": "2026-05-07T12:43:00Z",
+      "confidence": 0.97,
+      "payload": {}
+    },
+    {
+      "event_type": "cosine_update",
+      "source": "baseline",
+      "timestamp": "2026-05-07T13:00:00Z",
+      "confidence": 1.0,
+      "payload": { "cosine_distance": 0.04 }
+    },
+    {
+      "event_type": "presence_detected",
+      "source": "mmwave_ld2410",
+      "room": "kitchen",
+      "timestamp": "2026-05-07T18:05:00Z",
+      "confidence": 0.97,
+      "payload": { "targets": 1, "dwell_s": 1080, "motion": "stationary" }
+    },
+    {
+      "event_type": "presence_ended",
+      "source": "mmwave_ld2410",
+      "room": "kitchen",
+      "timestamp": "2026-05-07T18:23:00Z",
+      "confidence": 0.97,
+      "payload": {}
+    },
+    {
+      "event_type": "presence_detected",
+      "source": "mmwave_ld2410",
+      "room": "bedroom",
+      "timestamp": "2026-05-07T23:08:00Z",
+      "confidence": 0.97,
+      "payload": { "targets": 1, "dwell_s": 0, "motion": "stationary" }
+    }
+  ]
+}

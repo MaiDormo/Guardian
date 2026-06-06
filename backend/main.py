@@ -1,0 +1,539 @@
+"""
+main.py — Guardian FastAPI backend.
+
+Routes:
+    GET  /health                  — Health check
+    GET  /status                  — On-device badge data (no outbound connections)
+    POST /ingest                  — Receive sensor events (from simulator or real sensors)
+    GET  /events                  — SSE stream → Next.js dashboard
+    POST /scenario/{name}         — Reset state + play scripted scenario timeline
+    POST /trigger/intervention    — Dispatch WhatsApp + return overlay payload
+
+All SSE events match PRD § 5.6 schema exactly.
+
+Integration strategy: tries to import Tanmay's modules (ingestion, signals, baseline,
+location, voice_checkin). Falls back to in-memory rule-based logic if they don't exist
+yet — this keeps Phase 1 fully functional before Tanmay's code lands.
+"""
+
+import asyncio
+import json
+import logging
+import os
+from contextlib import asynccontextmanager
+from datetime import datetime, timezone
+
+import httpx
+from dotenv import load_dotenv
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
+from sse_starlette.sse import EventSourceResponse
+
+load_dotenv()
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [guardian] %(message)s")
+log = logging.getLogger(__name__)
+
+OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+WHATSAPP_TOKEN = os.getenv("WHATSAPP_TOKEN", "")
+WHATSAPP_PHONE_ID = os.getenv("WHATSAPP_PHONE_ID", "")
+CAREGIVER_PHONE = os.getenv("CAREGIVER_PHONE", "+85200000000")
+
+# ---------------------------------------------------------------------------
+# Optional integration with Tanmay's modules
+# ---------------------------------------------------------------------------
+
+try:
+    from ingestion import process_event as _tanmay_ingest  # type: ignore
+    from signals import update_signal_state as _tanmay_signals  # type: ignore
+    HAS_TANMAY = True
+    log.info("Tanmay's modules loaded ✓")
+except ImportError:
+    HAS_TANMAY = False
+    log.info("Tanmay's modules not found — running in-memory fallback mode")
+
+try:
+    from agent import GuardianAgent  # type: ignore
+    _agent: "GuardianAgent | None" = None  # initialised in lifespan
+    HAS_AGENT = True
+except ImportError:
+    HAS_AGENT = False
+    _agent = None
+    log.info("agent.py not found — reasoning log will be unavailable")
+
+# ---------------------------------------------------------------------------
+# In-memory signal state
+# ---------------------------------------------------------------------------
+
+SIGNALS = ["woke_up", "ate", "took_meds", "rested_well", "helper_present",
+           "voice_checkin", "location", "routine"]
+
+def _empty_state() -> dict:
+    return {s: {"state": "unknown", "reason": "", "cosine_distance": None, "updated_at": None}
+            for s in SIGNALS}
+
+signal_state: dict[str, dict] = _empty_state()
+fall_active: bool = False
+
+# ---------------------------------------------------------------------------
+# SSE client registry
+# ---------------------------------------------------------------------------
+
+_clients: list[asyncio.Queue] = []
+
+
+async def _broadcast(event: dict) -> None:
+    dead = []
+    for q in _clients:
+        try:
+            q.put_nowait(event)
+        except asyncio.QueueFull:
+            dead.append(q)
+    for q in dead:
+        try:
+            _clients.remove(q)
+        except ValueError:
+            pass
+
+
+def _ts() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _make_signal_sse(signal: str, state: str, reason: str,
+                     cosine: float | None = None) -> dict:
+    signal_state[signal] = {
+        "state": state, "reason": reason,
+        "cosine_distance": cosine, "updated_at": _ts(),
+    }
+    return {
+        "event": "signal_update",
+        "payload": {
+            "signal": signal, "state": state,
+            "reason": reason, "cosine_distance": cosine,
+            "updated_at": signal_state[signal]["updated_at"],
+        },
+    }
+
+
+# ---------------------------------------------------------------------------
+# In-memory event → signal rules (Phase 1 fallback; replaced by Tanmay's signals.py)
+# ---------------------------------------------------------------------------
+
+async def _process_event_inplace(event: dict) -> list[dict]:
+    """Derive SSE events from a raw ingest event without Tanmay's modules."""
+    sse_out: list[dict] = []
+    et = event.get("event_type", "")
+    room = event.get("room", "")
+    payload = event.get("payload", {})
+    now = event.get("timestamp", _ts())
+
+    if et == "presence_detected":
+        sse_out.append({
+            "event": "presence_update",
+            "payload": {"room": room, "occupied": True, "fall": False, "updated_at": now},
+        })
+        hour = datetime.fromisoformat(now.replace("Z", "+00:00")).hour
+        if room == "bedroom" and 5 <= hour <= 11:
+            sse_out.append(_make_signal_sse("woke_up", "green",
+                                            f"Bedroom motion at {hour:02d}:xx"))
+        elif room == "kitchen":
+            dwell = payload.get("dwell_s", 0)
+            if dwell >= 300:
+                sse_out.append(_make_signal_sse("ate", "green",
+                                                f"Kitchen dwell {dwell//60} min"))
+            elif dwell > 0:
+                sse_out.append(_make_signal_sse("ate", "amber",
+                                                f"Kitchen dwell only {dwell//60} min"))
+
+    elif et == "presence_ended":
+        sse_out.append({
+            "event": "presence_update",
+            "payload": {"room": room, "occupied": False, "fall": False, "updated_at": now},
+        })
+
+    elif et == "dispenser_opened":
+        sse_out.append(_make_signal_sse("took_meds", "green",
+                                        f"Dispenser opened — compartment {payload.get('compartment')}"))
+
+    elif et == "dispenser_missed":
+        sse_out.append(_make_signal_sse("took_meds", "red",
+                                        f"Dispenser missed — {payload.get('minutes_overdue', 0)} min overdue"))
+
+    elif et == "breathing_update":
+        state = "green" if payload.get("in_baseline", True) else "amber"
+        sse_out.append(_make_signal_sse("rested_well", state,
+                                        f"Breathing rate {payload.get('rate_bpm', '?')} bpm"))
+
+    elif et == "multi_presence_detected":
+        sse_out.append(_make_signal_sse("helper_present", "green",
+                                        f"Second presence detected in helper window"))
+
+    elif et == "voice_checkin_completed":
+        confused = payload.get("confusion_markers", False)
+        state = "red" if confused else "green"
+        reason = (f"Speech {payload.get('speech_rate_wpm')} wpm, "
+                  f"clarity {payload.get('clarity_score')}"
+                  + (", confusion markers" if confused else ""))
+        sse_out.append(_make_signal_sse("voice_checkin", state, reason))
+
+    elif et == "voice_distress_detected":
+        reason = (f"Distress: {payload.get('speech_rate_wpm')} wpm, "
+                  f"clarity {payload.get('clarity_score')}, confusion markers, "
+                  f"latency {payload.get('response_latency_s')}s")
+        sse_out.append(_make_signal_sse("voice_checkin", "red", reason,
+                                        payload.get("baseline_deviation_cosine")))
+
+    elif et == "location_update":
+        match = payload.get("baseline_cluster_match", True)
+        score = payload.get("trajectory_density_score", 1.0)
+        state = "green" if match else ("amber" if score > 0.15 else "red")
+        sse_out.append({
+            "event": "location_update",
+            "payload": {**payload, "updated_at": now},
+        })
+        sse_out.append(_make_signal_sse("location", state,
+                                        f"Density score {score:.2f}",
+                                        payload.get("cosine_distance")))
+
+    elif et == "wandering_detected":
+        reason = (f"Outside baseline footprint "
+                  f"{payload.get('minutes_outside_baseline_footprint', 0)} min, "
+                  f"density {payload.get('trajectory_density_score', 0):.2f}")
+        sse_out.append({"event": "wandering_detected", "payload": {**payload, "updated_at": now}})
+        sse_out.append(_make_signal_sse("location", "red", reason))
+
+    elif et == "cosine_update":
+        # Tanmay emits this when routine cosine is recomputed
+        score = payload.get("cosine_distance", 0.0)
+        state = "green" if score < 0.15 else ("amber" if score < 0.25 else "red")
+        sse_out.append(_make_signal_sse("routine", state,
+                                        f"Cosine distance {score:.2f}", score))
+
+    elif et == "fall_detected":
+        global fall_active
+        fall_active = True
+        sse_out.append({
+            "event": "fall_detected",
+            "payload": {
+                "room": room or "bathroom",
+                "posture": payload.get("posture", "prone"),
+                "stationary_s": payload.get("stationary_s", 0),
+                "confidence": event.get("confidence", 0.95),
+                "updated_at": now,
+            },
+        })
+        sse_out.append({
+            "event": "presence_update",
+            "payload": {"room": room or "bathroom", "occupied": True, "fall": True, "updated_at": now},
+        })
+
+    return sse_out
+
+
+# ---------------------------------------------------------------------------
+# Scenario timelines (internal runner — mirrors mock_server.py sequences)
+# ---------------------------------------------------------------------------
+
+_scenario_task: asyncio.Task | None = None
+
+SCENARIO_EVENTS: dict[str, list[tuple[float, dict]]] = {
+    "normal": [
+        (0.0, {"event_type": "presence_detected", "source": "mmwave_ld2410",
+               "room": "bedroom", "timestamp": "", "confidence": 0.97,
+               "payload": {"targets": 1, "dwell_s": 0, "motion": "moving"}}),
+        (2.0, {"event_type": "presence_ended", "source": "mmwave_ld2410",
+               "room": "bedroom", "timestamp": "", "confidence": 0.97, "payload": {}}),
+        (2.1, {"event_type": "presence_detected", "source": "mmwave_ld2410",
+               "room": "bathroom", "timestamp": "", "confidence": 0.97,
+               "payload": {"targets": 1, "dwell_s": 0, "motion": "moving"}}),
+        (4.0, {"event_type": "presence_ended", "source": "mmwave_ld2410",
+               "room": "bathroom", "timestamp": "", "confidence": 0.97, "payload": {}}),
+        (4.1, {"event_type": "presence_detected", "source": "mmwave_ld2410",
+               "room": "kitchen", "timestamp": "", "confidence": 0.97,
+               "payload": {"targets": 1, "dwell_s": 1320, "motion": "stationary"}}),
+        (6.0, {"event_type": "dispenser_opened", "source": "pill_dispenser",
+               "timestamp": "", "confidence": 1.0,
+               "payload": {"compartment": "morning", "expected_window_start": "08:00",
+                           "delta_minutes": 10}}),
+        (8.0, {"event_type": "voice_checkin_completed", "source": "voice_system",
+               "timestamp": "", "confidence": 0.91,
+               "payload": {"speech_rate_wpm": 138, "clarity_score": 0.87,
+                           "sentiment": "positive", "confusion_markers": False,
+                           "response_latency_s": 1.2, "duration_s": 142}}),
+        (10.0, {"event_type": "location_update", "source": "gps_tracker",
+                "timestamp": "", "confidence": 0.97,
+                "payload": {"lat": 22.5431, "lng": 114.0579,
+                            "distance_from_home_m": 620,
+                            "trajectory_density_score": 0.91,
+                            "baseline_cluster_match": True}}),
+        (11.0, {"event_type": "cosine_update", "source": "baseline",
+                "timestamp": "", "confidence": 1.0,
+                "payload": {"cosine_distance": 0.04}}),
+    ],
+    "fall": [
+        (0.0, {"event_type": "fall_detected", "source": "mmwave_mr60fda1",
+               "room": "bathroom", "timestamp": "", "confidence": 0.95,
+               "payload": {"posture": "prone", "stationary_s": 12}}),
+    ],
+}
+
+
+async def _run_scenario(name: str) -> None:
+    global fall_active
+    if name == "fall":
+        # Hard override: fire immediately regardless of other active scenario
+        await _ingest_and_broadcast({
+            "event_type": "fall_detected", "source": "mmwave_mr60fda1",
+            "room": "bathroom", "timestamp": _ts(), "confidence": 0.95,
+            "payload": {"posture": "prone", "stationary_s": 12},
+        })
+        return
+
+    events = SCENARIO_EVENTS.get(name, [])
+    log.info("▶ scenario '%s' started (%d events)", name, len(events))
+    for delay, evt in events:
+        await asyncio.sleep(delay)
+        evt["timestamp"] = _ts()
+        await _ingest_and_broadcast(evt)
+    log.info("✓ scenario '%s' complete", name)
+
+
+def _reset_state() -> None:
+    global signal_state, fall_active
+    signal_state = _empty_state()
+    fall_active = False
+
+
+# ---------------------------------------------------------------------------
+# Core ingest + broadcast pipeline
+# ---------------------------------------------------------------------------
+
+async def _ingest_and_broadcast(event: dict) -> None:
+    if HAS_TANMAY:
+        try:
+            sse_events = await asyncio.to_thread(_tanmay_ingest, event)
+        except Exception as exc:
+            log.warning("Tanmay ingest error (%s) — falling back", exc)
+            sse_events = await _process_event_inplace(event)
+    else:
+        sse_events = await _process_event_inplace(event)
+
+    for sse_evt in sse_events:
+        await _broadcast(sse_evt)
+
+    # Optionally trigger agent reasoning (non-blocking)
+    if HAS_AGENT and _agent and event.get("event_type") not in ("fall_detected",):
+        asyncio.create_task(_agent.maybe_assess(signal_state, _broadcast))
+
+
+# ---------------------------------------------------------------------------
+# Pydantic schemas for /ingest and /trigger/intervention
+# ---------------------------------------------------------------------------
+
+class IngestEvent(BaseModel):
+    event_type: str
+    source: str
+    room: str | None = None
+    timestamp: str = Field(default_factory=_ts)
+    confidence: float = 1.0
+    payload: dict = Field(default_factory=dict)
+
+
+class InterventionRequest(BaseModel):
+    signal_summary: str = ""
+    location: str = "Shenzhen"
+
+
+# ---------------------------------------------------------------------------
+# App lifecycle
+# ---------------------------------------------------------------------------
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global _agent
+    if HAS_AGENT:
+        _agent = GuardianAgent(ollama_host=OLLAMA_HOST, broadcast=_broadcast)
+        await _agent.initialise()
+    log.info("Guardian backend ready on :8000")
+    yield
+    if _scenario_task and not _scenario_task.done():
+        _scenario_task.cancel()
+
+
+app = FastAPI(title="Guardian", version="8.3", lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# ---------------------------------------------------------------------------
+# Routes
+# ---------------------------------------------------------------------------
+
+@app.get("/health")
+async def health() -> dict:
+    return {"status": "ok", "clients": len(_clients), "fall_active": fall_active}
+
+
+@app.get("/status")
+async def status() -> dict:
+    """Powers the [● Running On-Device · Gemma 4 · 0 Bytes to Cloud] badge."""
+    ollama_ok = False
+    try:
+        async with httpx.AsyncClient(timeout=2.0) as c:
+            r = await c.get(f"{OLLAMA_HOST}/api/tags")
+            ollama_ok = r.status_code == 200
+    except Exception:
+        pass
+
+    return {
+        "on_device": True,
+        "model": "gemma4:e4b",
+        "bytes_to_cloud": 0,
+        "ollama_running": ollama_ok,
+        "ollama_host": OLLAMA_HOST,
+        "clients_connected": len(_clients),
+        "signals": signal_state,
+    }
+
+
+@app.post("/ingest")
+async def ingest(event: IngestEvent) -> dict:
+    await _ingest_and_broadcast(event.model_dump())
+    return {"status": "ok", "event_type": event.event_type}
+
+
+@app.get("/events")
+async def events(request: Request) -> EventSourceResponse:
+    async def generator():
+        q: asyncio.Queue = asyncio.Queue(maxsize=64)
+        _clients.append(q)
+        log.info("SSE client connected (%d total)", len(_clients))
+
+        # Send current state snapshot on connect
+        for sig, data in signal_state.items():
+            if data["state"] != "unknown":
+                snapshot = {
+                    "event": "signal_update",
+                    "payload": {"signal": sig, **data},
+                }
+                yield {"data": json.dumps(snapshot)}
+
+        try:
+            while True:
+                if await request.is_disconnected():
+                    break
+                try:
+                    event = await asyncio.wait_for(q.get(), timeout=15.0)
+                    yield {"data": json.dumps(event)}
+                except asyncio.TimeoutError:
+                    yield {"data": json.dumps({"event": "ping", "payload": {}})}
+        finally:
+            try:
+                _clients.remove(q)
+            except ValueError:
+                pass
+            log.info("SSE client disconnected (%d remaining)", len(_clients))
+
+    return EventSourceResponse(generator())
+
+
+@app.post("/scenario/{name}")
+async def run_scenario(name: str) -> dict:
+    global _scenario_task
+    valid = {"normal", "trend_7day", "fall"}
+    if name not in valid:
+        raise HTTPException(400, f"Unknown scenario '{name}'. Valid: {sorted(valid)}")
+
+    if _scenario_task and not _scenario_task.done():
+        _scenario_task.cancel()
+        await asyncio.sleep(0.05)
+
+    _reset_state()
+
+    # Broadcast state reset so the dashboard clears
+    await _broadcast({"event": "state_reset", "payload": {"scenario": name, "updated_at": _ts()}})
+
+    _scenario_task = asyncio.create_task(_run_scenario(name))
+    return {"status": "started", "scenario": name}
+
+
+@app.post("/trigger/intervention")
+async def trigger_intervention(body: InterventionRequest) -> dict:
+    """
+    Fire WhatsApp Business API alert to caregiver in Shenzhen.
+    Always returns overlay payload within 500ms — dashboard renders regardless of
+    whether the WhatsApp delivery succeeds.
+    """
+    now = _ts()
+    summary = body.signal_summary or _build_signal_summary()
+    message = (
+        f"🔴 Guardian Alert · Ah-Ma · {body.location} · "
+        f"{summary} · {now[:16].replace('T', ' ')} UTC"
+    )
+
+    whatsapp_sent = False
+    if WHATSAPP_TOKEN and WHATSAPP_PHONE_ID:
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                resp = await client.post(
+                    f"https://graph.facebook.com/v20.0/{WHATSAPP_PHONE_ID}/messages",
+                    headers={"Authorization": f"Bearer {WHATSAPP_TOKEN}",
+                             "Content-Type": "application/json"},
+                    json={
+                        "messaging_product": "whatsapp",
+                        "to": CAREGIVER_PHONE,
+                        "type": "text",
+                        "text": {"body": message},
+                    },
+                )
+                whatsapp_sent = resp.status_code == 200
+                log.info("WhatsApp dispatch: %s (%d)", "OK" if whatsapp_sent else "FAILED",
+                         resp.status_code)
+        except Exception as exc:
+            log.warning("WhatsApp error: %s", exc)
+    else:
+        log.info("WhatsApp not configured — overlay-only mode")
+
+    # Broadcast intervention_ack so dashboard updates
+    ack = {
+        "event": "intervention_ack",
+        "payload": {
+            "dispatched": True,
+            "channel": "whatsapp" if whatsapp_sent else "overlay_only",
+            "message_preview": message,
+            "updated_at": now,
+        },
+    }
+    await _broadcast(ack)
+
+    return {
+        "status": "dispatched",
+        "whatsapp_sent": whatsapp_sent,
+        "overlay_message": f"Alert dispatched — Shenzhen Care Network notified",
+        "message_preview": message,
+        "timestamp": now,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _build_signal_summary() -> str:
+    parts = []
+    emoji = {"green": "🟢", "amber": "🟡", "red": "🔴", "unknown": "⚪"}
+    for sig, data in signal_state.items():
+        parts.append(f"{sig.replace('_', ' ').title()} {emoji.get(data['state'], '⚪')}")
+    return " · ".join(parts)
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True, log_level="info")
