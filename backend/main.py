@@ -385,6 +385,19 @@ async def _ingest_and_broadcast(event: dict) -> None:
         sse_events = await _process_event_inplace(event)
 
     for sse_evt in sse_events:
+        # Keep signal_state in sync regardless of which code path produced the events.
+        # Without this, HAS_TANMAY=True bypasses _make_signal_sse, leaving signal_state
+        # stuck at "unknown" — /status badge and agent.maybe_assess both break silently.
+        if sse_evt.get("event") == "signal_update":
+            p = sse_evt["payload"]
+            sig = p.get("signal")
+            if sig in signal_state:
+                signal_state[sig] = {
+                    "state": p.get("state", "unknown"),
+                    "reason": p.get("reason", ""),
+                    "cosine_distance": p.get("cosine_distance"),
+                    "updated_at": p.get("updated_at"),
+                }
         await _broadcast(sse_evt)
 
     # Optionally trigger agent reasoning (non-blocking)

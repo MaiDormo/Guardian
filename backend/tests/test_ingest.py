@@ -491,3 +491,43 @@ async def test_all_8_signals_start_as_unknown():
         assert main.signal_state[sig]["state"] == "unknown", (
             f"Signal '{sig}' should start as unknown"
         )
+
+
+async def test_ingest_and_broadcast_syncs_signal_state():
+    """
+    Regression: _ingest_and_broadcast must update signal_state regardless of
+    whether HAS_TANMAY is True or False. Before the fix, Tanmay's code path
+    skipped _make_signal_sse, leaving signal_state stuck at 'unknown' while
+    broadcasting the correct SSE events — /status badge showed all-unknown
+    and agent.maybe_assess silently stopped firing.
+    """
+    import main
+
+    broadcast_received: list[dict] = []
+
+    async def capture(event: dict) -> None:
+        broadcast_received.append(event)
+
+    # Patch _clients so _broadcast calls our capture
+    original_clients = main._clients[:]
+    import asyncio
+    q: asyncio.Queue = asyncio.Queue()
+    main._clients.append(q)
+
+    try:
+        await main._ingest_and_broadcast({
+            "event_type": "dispenser_opened",
+            "source": "pill_dispenser",
+            "timestamp": "2026-06-06T08:10:00Z",
+            "confidence": 1.0,
+            "payload": {"compartment": "morning",
+                        "expected_window_start": "08:00", "delta_minutes": 10},
+        })
+
+        # signal_state must be updated — not just the SSE broadcast
+        assert main.signal_state["took_meds"]["state"] == "green", (
+            "signal_state not synced after _ingest_and_broadcast — "
+            "agent.maybe_assess and /status would see 'unknown' instead of 'green'"
+        )
+    finally:
+        main._clients.remove(q)
