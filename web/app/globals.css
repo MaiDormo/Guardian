@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-background text-on-surface antialiased;
+    font-family: "Inter", system-ui, sans-serif;
+  }
+}
+
+@layer utilities {
+  .pulse-red {
+    animation: pulse-red 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  @keyframes pulse-red {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .animate-blink-pin {
+    animation: blink-scale 1.2s ease-in-out infinite;
+  }
+  @keyframes blink-scale {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.15); opacity: 0.7; }
+  }
+
+  .slide-down {
+    animation: slide-down 0.3s ease-out;
+  }
+  @keyframes slide-down {
+    from { transform: translateY(-100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  .slide-up {
+    animation: slide-up 0.3s ease-out;
+  }
+  @keyframes slide-up {
+    from { transform: translateY(100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  .fade-in {
+    animation: fade-in 0.2s ease-out;
+  }
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+}
