@@ -1,0 +1,306 @@
+<!DOCTYPE html><html class="light" lang="en" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
+<title>Guardian Signal Grid Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-container": "#e5eeff",
+                    "secondary-container": "#dae2fd",
+                    "surface-container-high": "#dce9ff",
+                    "on-primary-fixed-variant": "#005137",
+                    "on-tertiary-container": "#fdfcff",
+                    "on-tertiary": "#ffffff",
+                    "on-primary-fixed": "#002114",
+                    "tertiary": "#4f5d72",
+                    "on-background": "#0b1c30",
+                    "primary": "#006948",
+                    "on-surface": "#0b1c30",
+                    "on-secondary-fixed": "#131b2e",
+                    "on-error-container": "#93000a",
+                    "surface-bright": "#f8f9ff",
+                    "surface": "#f8f9ff",
+                    "surface-tint": "#006c4a",
+                    "on-error": "#ffffff",
+                    "secondary-fixed": "#dae2fd",
+                    "background": "#f8f9ff",
+                    "error-container": "#ffdad6",
+                    "surface-container-highest": "#d3e4fe",
+                    "on-tertiary-fixed-variant": "#3a485c",
+                    "on-surface-variant": "#3d4a42",
+                    "on-primary": "#ffffff",
+                    "surface-container-low": "#eff4ff",
+                    "error": "#ba1a1a",
+                    "inverse-on-surface": "#eaf1ff",
+                    "surface-container-lowest": "#ffffff",
+                    "outline-variant": "#bccac0",
+                    "secondary-fixed-dim": "#bec6e0",
+                    "inverse-primary": "#68dba9",
+                    "on-tertiary-fixed": "#0d1c2f",
+                    "surface-variant": "#d3e4fe",
+                    "tertiary-fixed-dim": "#b9c7e0",
+                    "surface-dim": "#cbdbf5",
+                    "primary-container": "#00855d",
+                    "on-secondary-fixed-variant": "#3f465c",
+                    "inverse-surface": "#213145",
+                    "tertiary-fixed": "#d5e3fd",
+                    "on-secondary": "#ffffff",
+                    "outline": "#6d7a72",
+                    "on-secondary-container": "#5c647a",
+                    "secondary": "#565e74",
+                    "on-primary-container": "#f5fff7",
+                    "primary-fixed-dim": "#68dba9",
+                    "tertiary-container": "#67758c",
+                    "primary-fixed": "#85f8c4"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "xl": "32px",
+                    "base": "8px",
+                    "margin-mobile": "16px",
+                    "md": "16px",
+                    "gutter": "24px",
+                    "margin-desktop": "48px",
+                    "xs": "4px",
+                    "lg": "24px",
+                    "sm": "8px"
+            },
+            "fontFamily": {
+                    "headline-xl": ["Inter"],
+                    "body-md": ["Inter"],
+                    "headline-md": ["Inter"],
+                    "headline-lg-mobile": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "label-sm": ["Inter"],
+                    "label-md": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "body-sm": ["Inter"]
+            },
+            "fontSize": {
+                    "headline-xl": ["40px", {"lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "headline-lg-mobile": ["28px", {"lineHeight": "36px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                    "label-sm": ["12px", {"lineHeight": "14px", "fontWeight": "500"}],
+                    "label-md": ["14px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                    "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .pulse-red { animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; fill: #ba1a1a; } 50% { opacity: 0.3; fill: #ffdad6; } }
+        
+        @keyframes blink-scale {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.7; }
+        }
+        .animate-blink-pin {
+            animation: blink-scale 1.2s ease-in-out infinite;
+        }
+
+        .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface min-h-screen flex flex-col">
+<!-- Top App Bar -->
+<header class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-xl border-b border-white/10 shadow-sm flex items-center justify-between px-gutter h-16">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full overflow-hidden border border-outline-variant">
+<img alt="Grandma Wong" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCPDQDaNis2_kUR_JRYlqWsG73aevDS3ReIO7IYZkVLRWRLvC8yW91R09XTfjAfEaIS4-qVdKBp-sqw89txQdV36juDlEyuXLzAV_j-29FdqXCc1tswgfydxmdlpzFP101aDS-UiJoR2xD4qnldm2CI6gQ6rb4imQPGk6CgHtULwLlGc1YWLkiFBckd6TW7X3XdYqAtZ3jeb9Uk9DES7192TAh6m-Ma5_t7obV-uVQFrM75H05ajTv6HZcCAZsEzToXY4ZaZTiszQMf">
+</div>
+<div class="flex flex-col">
+<h1 class="font-headline-md text-headline-md leading-none text-primary">Grandma Wong</h1>
+<span class="text-label-sm font-label-sm text-on-surface-variant">Elderly Care Monitor</span>
+</div>
+</div>
+<button class="material-symbols-outlined text-primary hover:opacity-80 transition-opacity active:scale-95">notifications</button>
+</header>
+<!-- Main Content -->
+<main class="flex-grow pt-20 pb-24 px-margin-mobile">
+<!-- Emergency Banner -->
+<div class="mb-lg animate-bounce">
+<div class="bg-error text-on-error p-4 rounded-xl flex items-center justify-between shadow-lg" style="opacity: 1;">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined" style="font-variation-settings: &quot;FILL&quot; 1;">error</span>
+<div class="flex flex-col">
+<span class="font-headline-md text-headline-md-mobile leading-tight">FALL DETECTED</span>
+<span class="text-label-sm font-medium opacity-90">Olimpic Square, Hong Kong Park</span>
+</div>
+</div>
+<button class="bg-on-error text-error px-4 py-1 rounded-full text-label-md font-label-md">ACTION</button>
+</div>
+</div>
+<!-- Floor Plan Visualizer -->
+<div class="mb-4 border border-outline-variant rounded-xl p-lg overflow-hidden relative bg-surface-container-low">
+<div class="flex justify-between items-center mb-md">
+<h2 class="font-headline-md text-headline-md text-on-surface">Map</h2>
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-error pulse-red"></span>
+<span class="text-label-sm font-label-sm text-error font-bold">LIVE ALERT</span>
+</div>
+</div>
+<!-- Map Container with Overlay -->
+<div class="w-full aspect-[4/3] bg-surface-container-low rounded-lg overflow-hidden relative">
+<div class="absolute inset-0">
+<img alt="Map of Olympic Square, Hong Kong Park" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDfHGTTOmcyzhPtMpjBee22lkLg5Fj9hdEtrMfM4ktiY47tegmSpaMSWOVr9sz8f3SKBIrw9eWhag_QZyxOXupJvG3kMeabMUjh_8VR1or0VZ7EdiemqQb6kAs84BGO9vbPj8hyM8nqYaRsPRltRAdogr_NLlyvVgixyhVyFQEwLWupaAq3YS0JlNYlyFAEKgkbU3-PAm0ZKEKsciX_ufl6v2lZW2YMz8v7MuHBweB0tcSab8DDjAQcL3qpP_NQTyw8wVBbUjubmQylHbk">
+</div>
+<!-- Animated Pin Overlay -->
+<div class="absolute left-[39.5%] top-[22%] -translate-x-1/2 -translate-y-full flex flex-col items-center">
+<div class="animate-blink-pin">
+<span class="material-symbols-outlined text-error text-[40px]" style="font-variation-settings: &quot;FILL&quot; 1, &quot;wght&quot; 700;">location_on</span>
+</div>
+</div>
+<div class="absolute bottom-4 right-4 bg-surface/90 backdrop-blur-sm px-3 py-1 rounded-full border border-outline-variant shadow-sm z-10">
+<span class="text-label-sm text-primary font-bold">GPS ACTIVE</span>
+</div>
+</div>
+</div>
+<!-- Critical Context Grid (Location & Routine) -->
+<div class="grid grid-cols-2 gap-4 mb-lg">
+<!-- Card 7: Location (Critical Style) -->
+<div class="bg-error-container border border-error/20 p-4 rounded-xl flex flex-col gap-2">
+<div class="flex items-center justify-between">
+<span class="material-symbols-outlined text-error" style="font-variation-settings: &quot;FILL&quot; 1;">location_on</span>
+<span class="bg-error text-on-error text-[10px] px-2 py-0.5 rounded-full font-bold">ALERT</span>
+</div>
+<h3 class="font-label-md text-label-md text-on-error-container">Location</h3>
+<p class="font-headline-md text-headline-md text-error">Hong Kong Park</p>
+</div>
+<!-- Card 8: Routine -->
+<div class="border border-outline-variant p-4 rounded-xl flex flex-col gap-2 bg-surface-container-low">
+<div class="flex items-center justify-between">
+<span class="material-symbols-outlined text-primary">calendar_today</span>
+<span class="bg-primary-container text-on-primary-container text-[10px] px-2 py-0.5 rounded-full font-bold">ON TRACK</span>
+</div>
+<h3 class="font-label-md text-label-md text-on-surface-variant">Routine</h3>
+<p class="font-headline-md text-headline-md text-on-surface">Lunch Soon</p>
+</div>
+</div>
+<!-- Main Health Status Grid (Remaining 6 Cards) -->
+<div class="grid grid-cols-2 gap-4">
+<!-- Card 1: Woke Up -->
+<div class="border border-outline-variant p-4 rounded-xl flex flex-col gap-2 bg-surface-container-low">
+<div class="flex items-center justify-between">
+<span class="material-symbols-outlined text-primary">wb_sunny</span>
+<span class="bg-primary-container text-on-primary-container text-[10px] px-2 py-0.5 rounded-full font-bold">NORMAL</span>
+</div>
+<h3 class="font-label-md text-label-md text-on-surface-variant">Woke Up</h3>
+<p class="font-headline-md text-headline-md text-on-surface">07:15 AM</p>
+</div>
+<!-- Card 2: Ate -->
+<div class="border border-outline-variant p-4 rounded-xl flex flex-col gap-2 bg-surface-container-low">
+<div class="flex items-center justify-between">
+<span class="material-symbols-outlined text-primary">restaurant</span>
+<span class="bg-primary-container text-on-primary-container text-[10px] px-2 py-0.5 rounded-full font-bold">NORMAL</span>
+</div>
+<h3 class="font-label-md text-label-md text-on-surface-variant">Ate</h3>
+<p class="font-headline-md text-headline-md text-on-surface">Breakfast</p>
+</div>
+<!-- Card 3: Took Meds -->
+<div class="border border-outline-variant p-4 rounded-xl flex flex-col gap-2 bg-surface-container-low">
+<div class="flex items-center justify-between">
+<span class="material-symbols-outlined text-primary">medication</span>
+<span class="bg-primary-container text-on-primary-container text-[10px] px-2 py-0.5 rounded-full font-bold">NORMAL</span>
+</div>
+<h3 class="font-label-md text-label-md text-on-surface-variant">Took Meds</h3>
+<p class="font-headline-md text-headline-md text-on-surface">Morning 3/3</p>
+</div>
+<!-- Card 4: Rested Well -->
+<div class="border border-outline-variant p-4 rounded-xl flex flex-col gap-2 bg-surface-container-low">
+<div class="flex items-center justify-between">
+<span class="material-symbols-outlined text-tertiary">bedtime</span>
+<span class="bg-secondary-container text-on-secondary-container text-[10px] px-2 py-0.5 rounded-full font-bold">FAIR</span>
+</div>
+<h3 class="font-label-md text-label-md text-on-surface-variant">Rested Well</h3>
+<p class="font-headline-md text-headline-md text-on-surface">6h 12m</p>
+</div>
+<!-- Card 5: Helper Present -->
+<div class="border border-outline-variant p-4 rounded-xl flex flex-col gap-2 bg-surface-container-low">
+<div class="flex items-center justify-between">
+<span class="material-symbols-outlined text-primary">volunteer_activism</span>
+<span class="bg-primary-container text-on-primary-container text-[10px] px-2 py-0.5 rounded-full font-bold">YES</span>
+</div>
+<h3 class="font-label-md text-label-md text-on-surface-variant">Helper Present</h3>
+<p class="font-headline-md text-headline-md text-on-surface">Nurse Kim</p>
+</div>
+<!-- Card 6: Voice Check-In -->
+<div class="border border-outline-variant p-4 rounded-xl flex flex-col gap-2 bg-surface-container-low">
+<div class="flex items-center justify-between">
+<span class="material-symbols-outlined text-tertiary">record_voice_over</span>
+<span class="bg-secondary-container text-on-secondary-container text-[10px] px-2 py-0.5 rounded-full font-bold">IDLE</span>
+</div>
+<h3 class="font-label-md text-label-md text-on-surface-variant">Voice Check-In</h3>
+<p class="font-headline-md text-headline-md text-on-surface">None</p>
+</div>
+</div>
+<!-- Spacer for FAB -->
+<div class="h-12"></div>
+</main>
+<!-- Bottom Nav Bar -->
+<nav class="fixed bottom-0 w-full z-50 rounded-t-xl bg-surface/90 backdrop-blur-xl border-t border-white/10 shadow-lg flex justify-around items-center h-20 px-4 pb-safe">
+<a class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-full px-4 py-1 transition-transform active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-sm text-label-sm">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-colors active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined">history_toggle_off</span>
+<span class="font-label-sm text-label-sm">Timeline</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-colors active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined">sensors</span>
+<span class="font-label-sm text-label-sm">Sensors</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-colors active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-sm text-label-sm">Profile</span>
+</a>
+</nav>
+<!-- Floating Action Button (Manual Trigger/Emergencies) -->
+<button class="fixed bottom-24 right-6 w-14 h-14 bg-primary text-on-primary rounded-full shadow-xl flex items-center justify-center transition-transform active:scale-90">
+<span class="material-symbols-outlined text-[32px]">call</span>
+</button>
+<script>
+        // Micro-interaction: Hover effects for grid cards
+        document.querySelectorAll('.grid > div').forEach(card => {
+            card.addEventListener('touchstart', () => {
+                card.classList.add('scale-[0.98]', 'bg-surface-container');
+            });
+            card.addEventListener('touchend', () => {
+                card.classList.remove('scale-[0.98]', 'bg-surface-container');
+            });
+        });
+
+        // Flash emergency banner occasionally
+        setInterval(() => {
+            const banner = document.querySelector('.bg-error');
+            if(banner) {
+                banner.style.opacity = banner.style.opacity === '0.8' ? '1' : '0.8';
+            }
+        }, 1000);
+    </script>
+
+
+</body></html>
