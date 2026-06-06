@@ -37,6 +37,9 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [guardian] %(message
 log = logging.getLogger(__name__)
 
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+# WeChat / WeCom (primary for GBA caregivers — works on mainland China, no VPN)
+WECOM_WEBHOOK_URL = os.getenv("WECOM_WEBHOOK_URL", "")
+# WhatsApp Business API (fallback for HK-side family members)
 WHATSAPP_TOKEN = os.getenv("WHATSAPP_TOKEN", "")
 WHATSAPP_PHONE_ID = os.getenv("WHATSAPP_PHONE_ID", "")
 CAREGIVER_PHONE = os.getenv("CAREGIVER_PHONE", "+85200000000")
@@ -560,24 +563,41 @@ async def run_scenario(name: str) -> dict:
     return {"status": "started", "scenario": name}
 
 
-@app.post("/trigger/intervention")
-async def trigger_intervention(body: InterventionRequest) -> dict:
-    """
-    Fire WhatsApp Business API alert to caregiver in Shenzhen.
-    Always returns overlay payload within 500ms — dashboard renders regardless of
-    whether the WhatsApp delivery succeeds.
-    """
-    now = _ts()
-    summary = body.signal_summary or _build_signal_summary()
-    message = (
-        f"🔴 Guardian Alert · Ah-Ma · {body.location} · "
-        f"{summary} · {now[:16].replace('T', ' ')} UTC"
-    )
+# ---------------------------------------------------------------------------
+# Alert dispatch helper — WeCom (WeChat) preferred, WhatsApp fallback
+# ---------------------------------------------------------------------------
 
-    whatsapp_sent = False
+async def _dispatch_alert(message: str) -> str:
+    """
+    Fire an alert message to the caregiver. Tries WeCom webhook first (best
+    for mainland China / GBA), falls back to WhatsApp Business API, then
+    returns 'overlay_only' if neither is configured.
+
+    Always returns within timeout — the overlay renders regardless of whether
+    the delivery succeeds (PRD § 6).
+    """
+    # ── WeCom (企业微信) webhook bot ──────────────────────────────────────
+    # Setup: WeChat Work → group → Add Group Bot → copy webhook URL → set WECOM_WEBHOOK_URL
+    # Reaches any WeChat account in mainland China with no VPN required.
+    if WECOM_WEBHOOK_URL:
+        try:
+            async with httpx.AsyncClient(timeout=4.0) as client:
+                resp = await client.post(
+                    WECOM_WEBHOOK_URL,
+                    json={"msgtype": "text", "text": {"content": message}},
+                )
+                if resp.status_code == 200:
+                    log.info("WeCom dispatch: OK")
+                    return "wecom"
+                log.warning("WeCom dispatch failed (%d): %s", resp.status_code, resp.text[:120])
+        except Exception as exc:
+            log.warning("WeCom error: %s", exc)
+
+    # ── WhatsApp Business API fallback ────────────────────────────────────
+    # Useful for HK-side family contacts. Requires Meta business account + verified number.
     if WHATSAPP_TOKEN and WHATSAPP_PHONE_ID:
         try:
-            async with httpx.AsyncClient(timeout=5.0) as client:
+            async with httpx.AsyncClient(timeout=4.0) as client:
                 resp = await client.post(
                     f"https://graph.facebook.com/v20.0/{WHATSAPP_PHONE_ID}/messages",
                     headers={"Authorization": f"Bearer {WHATSAPP_TOKEN}",
@@ -589,30 +609,48 @@ async def trigger_intervention(body: InterventionRequest) -> dict:
                         "text": {"body": message},
                     },
                 )
-                whatsapp_sent = resp.status_code == 200
-                log.info("WhatsApp dispatch: %s (%d)", "OK" if whatsapp_sent else "FAILED",
-                         resp.status_code)
+                if resp.status_code == 200:
+                    log.info("WhatsApp dispatch: OK")
+                    return "whatsapp"
+                log.warning("WhatsApp dispatch failed (%d)", resp.status_code)
         except Exception as exc:
             log.warning("WhatsApp error: %s", exc)
-    else:
-        log.info("WhatsApp not configured — overlay-only mode")
 
-    # Broadcast intervention_ack so dashboard updates
-    ack = {
+    log.info("No messaging channel configured — overlay-only mode")
+    return "overlay_only"
+
+
+@app.post("/trigger/intervention")
+async def trigger_intervention(body: InterventionRequest) -> dict:
+    """
+    Dispatch emergency alert to caregiver in Shenzhen. Tries WeCom (WeChat
+    group bot) first — best for mainland China. Falls back to WhatsApp.
+    Always returns overlay payload within 500ms regardless of delivery result.
+    """
+    now = _ts()
+    summary = body.signal_summary or _build_signal_summary()
+    message = (
+        f"🔴 Guardian Alert · Ah-Ma · {body.location} · "
+        f"{summary} · {now[:16].replace('T', ' ')} UTC"
+    )
+
+    channel = await _dispatch_alert(message)
+
+    # Broadcast intervention_ack so dashboard updates immediately
+    await _broadcast({
         "event": "intervention_ack",
         "payload": {
             "dispatched": True,
-            "channel": "whatsapp" if whatsapp_sent else "overlay_only",
+            "channel": channel,
             "message_preview": message,
             "updated_at": now,
         },
-    }
-    await _broadcast(ack)
+    })
 
     return {
         "status": "dispatched",
-        "whatsapp_sent": whatsapp_sent,
-        "overlay_message": f"Alert dispatched — Shenzhen Care Network notified",
+        "channel": channel,
+        "overlay_message": "Alert dispatched — Shenzhen Care Network notified",
         "message_preview": message,
         "timestamp": now,
     }
@@ -662,36 +700,13 @@ async def trigger_connection(body: ConnectionRequest) -> dict:
         f"A good moment to call her.{note_str}"
     )
 
-    whatsapp_sent = False
-    if WHATSAPP_TOKEN and WHATSAPP_PHONE_ID:
-        try:
-            async with httpx.AsyncClient(timeout=5.0) as client:
-                resp = await client.post(
-                    f"https://graph.facebook.com/v20.0/{WHATSAPP_PHONE_ID}/messages",
-                    headers={
-                        "Authorization": f"Bearer {WHATSAPP_TOKEN}",
-                        "Content-Type": "application/json",
-                    },
-                    json={
-                        "messaging_product": "whatsapp",
-                        "to": CAREGIVER_PHONE,
-                        "type": "text",
-                        "text": {"body": message},
-                    },
-                )
-                whatsapp_sent = resp.status_code == 200
-                log.info("Connection nudge WhatsApp: %s (%d)",
-                         "OK" if whatsapp_sent else "FAILED", resp.status_code)
-        except Exception as exc:
-            log.warning("Connection nudge WhatsApp error: %s", exc)
-    else:
-        log.info("WhatsApp not configured — connection nudge overlay-only")
+    channel = await _dispatch_alert(message)
 
     ack = {
         "event": "connection_ack",
         "payload": {
             "dispatched": True,
-            "channel": "whatsapp" if whatsapp_sent else "overlay_only",
+            "channel": channel,
             "best_window": best,
             "rationale": rationale,
             "message_preview": message,
@@ -702,7 +717,7 @@ async def trigger_connection(body: ConnectionRequest) -> dict:
 
     return {
         "status": "dispatched",
-        "whatsapp_sent": whatsapp_sent,
+        "channel": channel,
         "best_window": best,
         "overlay_message": f"Great time to call — Ah-Ma is calm right now ({best})",
         "message_preview": message,
