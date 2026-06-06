@@ -21,7 +21,7 @@ import json
 import logging
 import os
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import httpx
 from dotenv import load_dotenv
@@ -357,9 +357,14 @@ async def _run_scenario(name: str) -> None:
 
     events = SCENARIO_EVENTS.get(name, [])
     log.info("▶ scenario '%s' started (%d events)", name, len(events))
+    # Anchor all scenario events to 08:00 UTC so the morning-window check
+    # (5 ≤ hour ≤ 11) always fires for bedroom events regardless of real wall-clock.
+    scenario_clock = datetime.now(timezone.utc).replace(
+        hour=8, minute=0, second=0, microsecond=0
+    )
     for delay, evt in events:
         await asyncio.sleep(delay)
-        evt["timestamp"] = _ts()
+        evt["timestamp"] = (scenario_clock + timedelta(seconds=delay)).isoformat()
         await _ingest_and_broadcast(evt)
     log.info("✓ scenario '%s' complete", name)
 
@@ -375,6 +380,7 @@ def _reset_state() -> None:
 # ---------------------------------------------------------------------------
 
 async def _ingest_and_broadcast(event: dict) -> None:
+    global fall_active
     if HAS_TANMAY:
         try:
             sse_events = await asyncio.to_thread(_tanmay_ingest, event)
@@ -398,6 +404,8 @@ async def _ingest_and_broadcast(event: dict) -> None:
                     "cosine_distance": p.get("cosine_distance"),
                     "updated_at": p.get("updated_at"),
                 }
+        elif sse_evt.get("event") == "fall_detected":
+            fall_active = True
         await _broadcast(sse_evt)
 
     # Optionally trigger agent reasoning (non-blocking)

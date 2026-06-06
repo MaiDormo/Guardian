@@ -531,3 +531,33 @@ async def test_ingest_and_broadcast_syncs_signal_state():
         )
     finally:
         main._clients.remove(q)
+
+
+async def test_ingest_and_broadcast_sets_fall_active():
+    """
+    Regression: fall_active must be set by _ingest_and_broadcast regardless of
+    whether HAS_TANMAY is True or False. Previously only set inside
+    _process_event_inplace (fallback). Consequence: /health badge showed
+    fall_active=false and the bathroom SVG pulse never fired on the dashboard.
+    """
+    import asyncio
+    import main
+
+    assert main.fall_active is False
+    q: asyncio.Queue = asyncio.Queue()
+    main._clients.append(q)
+    try:
+        await main._ingest_and_broadcast({
+            "event_type": "fall_detected",
+            "source": "mmwave_mr60fda1",
+            "room": "bathroom",
+            "timestamp": "2026-06-06T10:00:00Z",
+            "confidence": 0.95,
+            "payload": {"posture": "prone", "stationary_s": 12},
+        })
+        assert main.fall_active is True, (
+            "fall_active not set — /health badge wrong and bathroom pulse broken "
+            "when HAS_TANMAY=True"
+        )
+    finally:
+        main._clients.remove(q)
