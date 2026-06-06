@@ -746,14 +746,14 @@ guardian/
 │   ├── edge_processor.py           # All-source normalisation (Tanmay)
 │   ├── baseline.py                 # nomic-embed-text + sqlite-vec cosine (Tanmay)
 │   ├── agent.py                    # Gemma 4 via Ollama; tool-calling; reasoning log (Elia)
-│   ├── signals.py                  # 7-signal state machine (Tanmay)
+│   ├── signals.py                  # 8-signal state machine (Tanmay)
 │   ├── location.py                 # GPS events + DBSCAN + wandering detection (Tanmay)
 │   └── voice_checkin.py            # Voice feature schema + deviation (Eleoner)
 ├── web/                            # Mar's ownership
 │   ├── app/
 │   │   ├── page.tsx
 │   │   └── components/
-│   │       ├── SignalGrid.tsx           # 7 cards + fall banner
+│   │       ├── SignalGrid.tsx           # 8 cards + fall banner
 │   │       ├── SignalCard.tsx           # Colour state + reasoning expandable
 │   │       ├── FallBanner.tsx           # Full-width priority interrupt
 │   │       ├── FloorPlan.tsx            # SVG floor plan + SSE blips
@@ -883,4 +883,4 @@ guardian/
 
 ---
 
-*Guardian PRD v8.0 — on-device architecture (Gemma 4, Ollama, SQLite + sqlite-vec), HK/GBA cross-border context, 8-signal grid (Woke Up, Ate, Took Meds, Rested Well, Helper Present, Voice Check-In, Location, Routine) with trajectory density baseline replacing geofencing, Intervention Trigger, 2-minute demo script "The Preventative Intercept", 4-person team with full module ownership.*
+*Guardian PRD v8.3 — on-device architecture (Gemma 4, Ollama, SQLite + sqlite-vec), HK/GBA cross-border context, 8-signal grid (Woke Up, Ate, Took Meds, Rested Well, Helper Present, Voice Check-In, Location, Routine) with trajectory density baseline replacing geofencing, Hybrid Inference Strategy for demo safety, SSE stream contract (§5.6), SVG smoke-and-mirrors implementation strategy (§10.1), Intervention Trigger, 2-minute demo script "The Preventative Intercept", 4-person team with full module ownership.*
