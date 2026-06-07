@@ -8,7 +8,7 @@ import ZoneMap from "./components/ZoneMap";
 import LocationMap from "./components/LocationMap";
 import ConnectionCard from "./components/ConnectionCard";
 import SignalGrid from "./components/SignalGrid";
-import ScenarioPlayer, { triggerScenario } from "./components/ScenarioPlayer";
+import ScenarioPlayer from "./components/ScenarioPlayer";
 import ReasoningPanel from "./components/ReasoningPanel";
 import InterventionTrigger from "./components/InterventionTrigger";
 import Fab from "./components/Fab";
@@ -26,10 +26,6 @@ export default function Home() {
 
   const handleDismissFall = useCallback(() => setFallDismissed(true), []);
   const handleScenarioStart = useCallback(() => setFallDismissed(false), []);
-
-  const runNormalMorning = useCallback(() => {
-    void triggerScenario("normal", handleScenarioStart, setScenarioLoading);
-  }, [handleScenarioStart]);
 
   const handleFabDispatch = useCallback(async () => {
     setDispatching(true);
@@ -73,8 +69,6 @@ export default function Home() {
         backendConnected={sse.backendConnected}
         sseHealth={sse.sseHealth}
         dispatchChannels={sse.dispatchChannels}
-        onRunNormalMorning={runNormalMorning}
-        scenarioLoading={scenarioLoading === "normal"}
       />
 
       <StreamOfflineBanner
@@ -109,12 +103,7 @@ export default function Home() {
           </div>
         </div>
         <div className="min-h-[240px]">
-          <ReasoningPanel
-            reasoning={sse.reasoning}
-            onRunNormalMorning={runNormalMorning}
-            scenarioLoading={scenarioLoading === "normal"}
-            sseHealth={sse.sseHealth}
-          />
+          <ReasoningPanel reasoning={sse.reasoning} sseHealth={sse.sseHealth} />
         </div>
         <InterventionTrigger
           interventionAck={sse.interventionAck}
@@ -173,12 +162,7 @@ export default function Home() {
             />
           </div>
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-            <ReasoningPanel
-              reasoning={sse.reasoning}
-              onRunNormalMorning={runNormalMorning}
-              scenarioLoading={scenarioLoading === "normal"}
-              sseHealth={sse.sseHealth}
-            />
+            <ReasoningPanel reasoning={sse.reasoning} sseHealth={sse.sseHealth} />
           </div>
         </div>
       </div>

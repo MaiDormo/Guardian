@@ -23,6 +23,10 @@ const OCCASIONAL_NODES = [
   { id: "market", label: "Wet Market", x: 337, y: 65 },
 ];
 
+/** Deviation polyline: Home → Wet Market → east endpoint (named nodes only). */
+const DEVIATION_PATH = "M170 160 L260 105 L337 65 L350 160 L310 230";
+const DEVIATION_ENDPOINT = { x: 310, y: 230 };
+
 function humanStatus(isWandering: boolean, location: LocationUpdatePayload | null): string {
   if (isWandering) return "Outside usual route";
   if (location?.distance_from_home_m === 0) {
@@ -31,17 +35,45 @@ function humanStatus(isWandering: boolean, location: LocationUpdatePayload | nul
   return "Following usual routine";
 }
 
-function matchPercent(location: LocationUpdatePayload | null): string | null {
-  if (!location) return null;
-  return `${Math.round(location.trajectory_density_score * 100)}% match to usual pattern`;
+function matchPercent(
+  location: LocationUpdatePayload | null,
+  wandering: WanderingPayload | null
+): string | null {
+  const score = location?.trajectory_density_score ?? wandering?.trajectory_density_score;
+  if (score == null) return null;
+  return `${Math.round(score * 100)}% match to usual pattern`;
+}
+
+function footerText(
+  matchLabel: string | null,
+  isWandering: boolean
+): string {
+  if (matchLabel) return matchLabel;
+  if (isWandering) return "Route deviation detected";
+  return "Learning usual pattern…";
+}
+
+function densityScore(
+  location: LocationUpdatePayload | null,
+  wandering: WanderingPayload | null
+): number | null | undefined {
+  return location?.trajectory_density_score ?? wandering?.trajectory_density_score;
+}
+
+function clusterMatch(
+  location: LocationUpdatePayload | null,
+  wandering: WanderingPayload | null
+): boolean | null | undefined {
+  return location?.baseline_cluster_match ?? wandering?.baseline_cluster_match;
 }
 
 export default function LocationMap({ location, wandering }: LocationMapProps) {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const isWandering = wandering !== null;
   const statusLabel = humanStatus(isWandering, location);
-  const matchLabel = matchPercent(location);
+  const matchLabel = matchPercent(location, wandering);
   const detailsId = "location-raw-details";
+  const wanderingKey = wandering?.updated_at ?? "none";
 
   return (
     <section
@@ -79,13 +111,6 @@ export default function LocationMap({ location, wandering }: LocationMapProps) {
           }
         >
           <defs>
-            <filter id="loc-glow" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="3" result="blur" />
-              <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
             <pattern id="loc-grid" width="28" height="28" patternUnits="userSpaceOnUse">
               <path d="M 28 0 L 0 0 0 28" fill="none" stroke="#bccac0" strokeWidth="0.5" />
             </pattern>
@@ -93,21 +118,20 @@ export default function LocationMap({ location, wandering }: LocationMapProps) {
 
           <rect width="400" height="300" fill="url(#loc-grid)" />
 
-          {/* Usual weekly loop: Home → Dim Sum → MTR → Home */}
-          <g className={`transition-opacity duration-700 ${isWandering ? "opacity-25" : "opacity-100"}`}>
+          {/* Usual weekly loop: Home → Dim Sum → MTR → Home (static dashes) */}
+          <g className={`transition-opacity duration-300 ${isWandering ? "opacity-60" : "opacity-100"}`}>
             <path
               d="M170 160 Q110 95 45 35 Q-10 110 30 185 Q90 230 170 160 Z"
               fill="none"
               stroke="#006948"
               strokeWidth="2.5"
               strokeLinecap="round"
-              strokeDasharray="1 7"
-              className="animate-dash-flow"
+              strokeDasharray="6 6"
             />
           </g>
 
-          {/* Occasional Wet Market visit — dashed, not part of daily loop */}
-          <g className={`transition-opacity duration-700 ${isWandering ? "opacity-20" : "opacity-70"}`}>
+          {/* Occasional Wet Market visit */}
+          <g className={`transition-opacity duration-300 ${isWandering ? "opacity-40" : "opacity-70"}`}>
             <path
               d="M170 160 Q260 100 337 65"
               fill="none"
@@ -118,28 +142,46 @@ export default function LocationMap({ location, wandering }: LocationMapProps) {
             />
           </g>
 
-          <g className={`transition-opacity duration-700 ${isWandering ? "opacity-100 animate-pulse" : "opacity-0"}`}>
-            <path
-              d="M170 160 Q230 100 300 70 Q350 90 340 180 Q320 260 280 220"
-              fill="none"
-              stroke="#ba1a1a"
-              strokeWidth="3"
-              strokeLinecap="round"
-              filter="url(#loc-glow)"
-            />
-            <circle cx="280" cy="220" r="5" fill="#ba1a1a" filter="url(#loc-glow)" />
-            <circle cx="340" cy="180" r="3.5" fill="#ba1a1a" opacity="0.6" />
-            <circle cx="300" cy="70" r="3.5" fill="#ba1a1a" opacity="0.6" />
-          </g>
+          {isWandering && (
+            <g key={wanderingKey} className="animate-fade-in-once">
+              <path
+                d={DEVIATION_PATH}
+                fill="none"
+                stroke="#ba1a1a"
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                pathLength={1}
+                className="animate-path-reveal"
+              />
+              <circle
+                cx={DEVIATION_ENDPOINT.x}
+                cy={DEVIATION_ENDPOINT.y}
+                r={5}
+                fill="#ba1a1a"
+                className="animate-dot-attention"
+              />
+            </g>
+          )}
 
           {CORE_NODES.map((n) => (
             <g key={n.id}>
+              {n.kind === "home" && isWandering && (
+                <circle
+                  cx={n.x}
+                  cy={n.y}
+                  r={10}
+                  fill="none"
+                  stroke="#ba1a1a"
+                  strokeWidth={1}
+                  opacity={0.3}
+                />
+              )}
               <circle
                 cx={n.x}
                 cy={n.y}
                 r={n.kind === "home" ? 6 : 3.5}
                 fill={n.kind === "home" ? "#006948" : "#6d7a72"}
-                className={n.kind === "home" && isWandering ? "animate-blink-pin" : ""}
               />
               <text
                 x={n.x}
@@ -185,13 +227,19 @@ export default function LocationMap({ location, wandering }: LocationMapProps) {
         Green loop = usual week ·{" "}
         <span className="inline-block size-2 rounded-full bg-muted-foreground/60 align-middle" aria-hidden="true" />{" "}
         grey dash = occasional visit
+        {isWandering && (
+          <>
+            {" "}
+            ·{" "}
+            <span className="inline-block size-2 rounded-full bg-alert align-middle" aria-hidden="true" />{" "}
+            red = today&apos;s path
+          </>
+        )}
       </p>
 
       <div className="flex flex-col gap-1.5">
         <div className="flex items-center justify-between gap-2 text-label-sm text-muted-foreground">
-          <span className="text-pretty">
-            {matchLabel ?? "Learning usual pattern…"}
-          </span>
+          <span className="text-pretty">{footerText(matchLabel, isWandering)}</span>
           <button
             type="button"
             onClick={() => setDetailsOpen(!detailsOpen)}
@@ -210,7 +258,7 @@ export default function LocationMap({ location, wandering }: LocationMapProps) {
           >
             <dt>Route familiarity</dt>
             <dd className="text-right text-card-foreground">
-              {formatRouteFamiliarityPercent(location?.trajectory_density_score) ?? "—"}
+              {formatRouteFamiliarityPercent(densityScore(location, wandering)) ?? "—"}
             </dd>
             <dt>From home</dt>
             <dd className="text-right text-card-foreground">
@@ -218,13 +266,13 @@ export default function LocationMap({ location, wandering }: LocationMapProps) {
             </dd>
             <dt>Usual area</dt>
             <dd className="text-right text-card-foreground">
-              {formatUsualArea(location?.baseline_cluster_match)}
+              {formatUsualArea(clusterMatch(location, wandering))}
             </dd>
-            {location?.updated_at && (
+            {(location?.updated_at ?? wandering?.updated_at) && (
               <>
                 <dt>Updated</dt>
                 <dd className="text-right text-card-foreground">
-                  {new Date(location.updated_at).toLocaleTimeString([], {
+                  {new Date((location?.updated_at ?? wandering?.updated_at)!).toLocaleTimeString([], {
                     hour: "2-digit",
                     minute: "2-digit",
                   })}

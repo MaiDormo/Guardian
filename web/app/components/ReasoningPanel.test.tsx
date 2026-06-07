@@ -1,35 +1,17 @@
 import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import ReasoningPanel from "./ReasoningPanel";
 import { reasoningEntry } from "../../tests/fixtures";
 
 describe("ReasoningPanel", () => {
-  it("shows example entry and Run Normal Morning when empty", () => {
-    const onRun = vi.fn();
-    render(
-      <ReasoningPanel
-        reasoning={[]}
-        onRunNormalMorning={onRun}
-        sseHealth="connected"
-        demoMode
-      />
-    );
+  it("shows example entry when empty", () => {
+    render(<ReasoningPanel reasoning={[]} sseHealth="connected" demoMode />);
 
     expect(screen.getByRole("region", { name: /reasoning console/i })).toBeInTheDocument();
     expect(screen.getByText("Example")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Run Normal Morning/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Run Normal Morning/i })).not.toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent(/On-device reasoning/i);
     expect(screen.queryByText(/<context>/i)).not.toBeInTheDocument();
-  });
-
-  it("fires onRunNormalMorning from empty-state CTA", async () => {
-    const onRun = vi.fn();
-    const user = userEvent.setup();
-    render(<ReasoningPanel reasoning={[]} onRunNormalMorning={onRun} demoMode />);
-
-    await user.click(screen.getByRole("button", { name: /Run Normal Morning/i }));
-    expect(onRun).toHaveBeenCalledOnce();
   });
 
   it("renders demo entries with stat line and no context XML", () => {

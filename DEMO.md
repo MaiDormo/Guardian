@@ -36,7 +36,7 @@ docker compose up --build -d
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  Ah-Ma · Shenzhen          [Run demo]    [● Live · SSE · On-Device]        │
+│  Ah-Ma · Shenzhen                    [● Live · SSE · On-Device]            │
 ├──────────────┬──────────────────────────────────────┬───────────────────────┤
 │ LEFT         │ CENTER                               │ RIGHT                 │
 │ Daily Route  │ Optimal Connection Window            │ Dispatch Local        │
@@ -61,7 +61,6 @@ docker compose up --build -d
 | **▶ 7-Day Trend** | 7-day drift compressed for stage. Day 5 (~6s): voice amber. Day 7 (~11s): Voice, Location, Routine, Took Meds red. Dispatch button highlights. | ~12s |
 | **▶ Fall Override** | Hard cut — bathroom fall, banner, chime, auto-dispatch. Safety-reflex tier bypasses agent loop for the alert itself; console still logs priority interrupt. | Instant |
 | **Dispatch Local Emergency Care** | WeCom → WhatsApp → overlay fallback. Always shows success overlay. | <1s |
-| **Run demo** (header) | Shortcut for Normal Morning. | ~11s |
 | **Send call nudge** (Connection Window) | Optional — gentle call reminder. Not part of main script. | — |
 
 ---
@@ -162,7 +161,7 @@ These are the automatic UI events behind each act — use for rehearsal, not for
 | 1 | 0–11s | Zone map animates bedroom → bathroom → kitchen; signal cards green |
 | 1 | ~11s | Connection Window card loads `15:00-16:00`; Reasoning Console logs routine baseline (*"Baseline deviation: 0.04"*) |
 | 2 | ~6s | Voice Check-In card turns **amber** (clarity 0.68) — point here while narrating Day 5 |
-| 2 | ~11s | Voice, Location, Routine, Took Meds turn **red**; Dispatch button highlights |
+| 2 | ~11s | Voice, Location, Routine, Took Meds turn **red**; Dispatch button highlights; **Daily Route Check** (left): static red path draws once, "34 min outside" chip, footer **9% match** (not Learning) |
 | 2 | on dispatch | Overlay: *Alert dispatched — Shenzhen Care Network notified* |
 | 4 | instant | Fall banner + chime; auto-dispatch; Reasoning Console: *Priority interrupt — … bypassed the agent loop by design* |
 | 5 | — | Airplane Mode off/on: local SSE to `localhost:8000` stays connected — proves on-device, no cloud |

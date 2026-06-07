@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Play, Loader2 } from "lucide-react";
+import { Shield } from "lucide-react";
 import type { DispatchChannels, SSEHealth } from "../lib/useSSE";
 
 const AH_MA_AVATAR =
@@ -11,8 +11,6 @@ interface HeaderProps {
   backendConnected?: boolean;
   sseHealth?: SSEHealth;
   dispatchChannels?: DispatchChannels | null;
-  onRunNormalMorning?: () => void;
-  scenarioLoading?: boolean;
 }
 
 function dispatchLabel(dispatch: DispatchChannels | null | undefined): string | null {
@@ -25,106 +23,129 @@ function dispatchLabel(dispatch: DispatchChannels | null | undefined): string | 
 function healthStyles(health: SSEHealth, backendConnected: boolean) {
   if (health === "connected" && backendConnected) {
     return {
-      container: "border-ok/40 bg-ok/10 text-ok",
+      chip: "border border-primary/10 bg-primary/[0.04]",
       dot: "bg-ok animate-pulse",
-      label: "Live · SSE",
-      detail: "Running On-Device · Gemma 4 · 0 Bytes to Cloud",
+      label: "text-ok",
+      telemetry: "Gemma 4 · 0 bytes to cloud",
       srStatus: "Live stream connected. Running on-device with Gemma 4.",
+      isLive: true,
     };
   }
   if (health === "reconnecting") {
     return {
-      container: "border-warn/40 bg-warn/10 text-warn",
+      chip: "border border-warn/25 bg-warn/[0.06]",
       dot: "bg-warn animate-pulse",
-      label: "Reconnecting…",
-      detail: "SSE stream retrying",
+      label: "text-warn",
+      telemetry: "SSE stream retrying",
       srStatus: "Stream reconnecting.",
+      isLive: false,
     };
   }
   return {
-    container: "border-error/30 bg-error/5 text-error",
+    chip: "border border-error/20 bg-error/[0.04]",
     dot: "bg-error/80",
-    label: "Stream offline",
-    detail: "Demo state only",
+    label: "text-error",
+    telemetry: "Demo state only",
     srStatus: "Stream offline. Showing demo state only.",
+    isLive: false,
   };
+}
+
+function BrandLockup() {
+  return (
+    <div
+      className="flex flex-col items-center gap-1 px-0 lg:border-x lg:border-primary/10 lg:px-8"
+      aria-hidden="true"
+    >
+      <Shield className="size-5 text-primary/80" strokeWidth={1.75} aria-hidden="true" />
+      <span className="font-display text-balance text-headline-md font-semibold text-primary">
+        Guardian
+      </span>
+      <span className="hidden h-px w-10 bg-primary/25 lg:block" aria-hidden="true" />
+      <span className="text-label-sm uppercase tracking-[0.18em] text-muted-foreground">
+        On-device care
+      </span>
+    </div>
+  );
 }
 
 export default function Header({
   backendConnected = false,
   sseHealth = "disconnected",
   dispatchChannels = null,
-  onRunNormalMorning,
-  scenarioLoading = false,
 }: HeaderProps) {
   const health = healthStyles(sseHealth, backendConnected);
   const dispatch = dispatchLabel(dispatchChannels);
+  const liveLabel =
+    sseHealth === "connected" && backendConnected
+      ? "Live · SSE"
+      : sseHealth === "reconnecting"
+        ? "Reconnecting…"
+        : "Stream offline";
 
   return (
-    <header className="flex shrink-0 flex-col gap-2">
-      <div className="flex items-center justify-between gap-3">
-      <div className="flex min-w-0 items-center gap-3">
-        <div className="relative size-10 shrink-0 overflow-hidden rounded-full border border-outline-variant shadow-panel">
-          <Image
-            src={AH_MA_AVATAR}
-            alt="Ah-Ma"
-            fill
-            className="object-cover"
-            sizes="40px"
-            priority
-          />
-        </div>
-        <div className="min-w-0 flex flex-col">
-          <p className="text-label-sm font-medium uppercase text-muted-foreground">Guardian</p>
-          <h1 className="truncate font-display text-balance text-headline-md text-primary leading-tight">
-            Ah-Ma
-          </h1>
-          <p className="truncate text-body-sm text-card-foreground">
-            Shenzhen · monitored from Hong Kong
-          </p>
-        </div>
-      </div>
-
-      <div className="flex shrink-0 items-center gap-2">
-        {onRunNormalMorning && (
-          <button
-            type="button"
-            onClick={onRunNormalMorning}
-            disabled={scenarioLoading}
-            className="hidden items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-label-sm font-semibold text-on-primary transition-colors hover:bg-primary-container disabled:opacity-70 sm:flex"
+    <header className="header-masthead flex shrink-0 flex-col overflow-hidden rounded-2xl border border-primary/12">
+      <div className="grid grid-cols-1 items-center gap-4 px-4 py-3 lg:grid-cols-[minmax(0,1.15fr)_auto_minmax(0,1fr)]">
+        <div className="flex min-w-0 items-center gap-3">
+          <div
+            className={`relative size-12 shrink-0 rounded-full ring-2 ring-primary/15 ring-offset-2 ring-offset-background ${
+              health.isLive ? "animate-radar-pulse" : ""
+            }`}
           >
-            {scenarioLoading ? (
-              <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
-            ) : (
-              <Play className="size-3.5" fill="currentColor" aria-hidden="true" />
+            <div className="relative size-full overflow-hidden rounded-full border border-outline-variant shadow-panel">
+              <Image
+                src={AH_MA_AVATAR}
+                alt="Ah-Ma"
+                fill
+                className="object-cover"
+                sizes="48px"
+                priority
+              />
+            </div>
+            {health.isLive && (
+              <span
+                className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full border-2 border-white bg-ok"
+                aria-hidden="true"
+              />
             )}
-            Run demo
-          </button>
-        )}
+          </div>
+          <div className="min-w-0 flex flex-col gap-0.5">
+            <p className="text-label-sm font-medium uppercase tracking-widest text-muted-foreground">
+              Monitored subject
+            </p>
+            <h1 className="truncate font-display text-balance text-headline-md text-primary leading-tight">
+              Ah-Ma
+            </h1>
+            <p className="truncate text-pretty text-body-sm text-card-foreground">
+              Shenzhen · monitored from Hong Kong
+            </p>
+          </div>
+        </div>
+
+        <BrandLockup />
 
         <div
-          className={`flex flex-col items-end gap-0.5 rounded-lg border px-3 py-1.5 transition-colors sm:flex-row sm:items-center sm:gap-2 ${health.container}`}
+          className={`flex w-full flex-col gap-0.5 rounded-xl px-3 py-2 lg:max-w-none lg:justify-self-end ${health.chip}`}
           role="status"
           aria-live="polite"
         >
           <span className="sr-only">{health.srStatus}</span>
           <div className="flex items-center gap-1.5" aria-hidden="true">
             <span className={`size-2 rounded-full ${health.dot}`} />
-            <span className="text-label-sm font-bold uppercase">{health.label}</span>
+            <span className={`text-label-sm font-bold uppercase tracking-wide ${health.label}`}>
+              {liveLabel}
+            </span>
           </div>
-          <span className="hidden text-label-sm font-medium uppercase opacity-80 lg:inline">
-            {health.detail}
+          <span className="font-mono text-pretty text-label-sm tabular-nums leading-snug text-muted-foreground">
+            {health.telemetry}
           </span>
         </div>
-      </div>
       </div>
 
       {dispatch && (
         <p
-          className={`text-label-sm font-medium ${
-            dispatchChannels?.primary === "overlay_only"
-              ? "text-muted-foreground"
-              : "text-ok"
+          className={`border-t border-primary/8 bg-surface-container-low/50 px-4 py-1.5 text-label-sm font-medium ${
+            dispatchChannels?.primary === "overlay_only" ? "text-muted-foreground" : "text-ok"
           }`}
           role="status"
         >

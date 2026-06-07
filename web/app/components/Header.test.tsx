@@ -1,51 +1,48 @@
-import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { render, screen, within } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import Header from "./Header";
 
 describe("Header", () => {
-  it("renders Ah-Ma identity and location", () => {
+  it("renders masthead with subject, editorial lockup, and location", () => {
     render(<Header />);
 
-    expect(screen.getByRole("heading", { name: "Ah-Ma" })).toBeInTheDocument();
-    expect(screen.getByText(/Shenzhen · monitored from Hong Kong/i)).toBeInTheDocument();
-    expect(screen.getByAltText("Ah-Ma")).toBeInTheDocument();
+    const banner = screen.getByRole("banner");
+
+    expect(within(banner).getByRole("heading", { name: "Ah-Ma" })).toBeInTheDocument();
+    expect(within(banner).getByText("Guardian")).toBeInTheDocument();
+    expect(within(banner).getByText("On-device care")).toBeInTheDocument();
+    expect(within(banner).getByText("Monitored subject")).toBeInTheDocument();
+    expect(within(banner).getByText(/Shenzhen · monitored from Hong Kong/i)).toBeInTheDocument();
+    expect(within(banner).getByAltText("Ah-Ma")).toBeInTheDocument();
   });
 
-  it("shows live SSE status when connected", () => {
+  it("shows live SSE telemetry when connected", () => {
     render(<Header backendConnected sseHealth="connected" />);
 
-    const status = screen.getByRole("status");
-    expect(status).toHaveTextContent(/Live · SSE/i);
-    expect(status).toHaveTextContent(/Running On-Device/i);
+    const statuses = screen.getAllByRole("status");
+    const telemetry = statuses.find((el) => el.textContent?.includes("Live · SSE"));
+    expect(telemetry).toBeDefined();
+    expect(telemetry).toHaveTextContent(/Gemma 4/i);
+    expect(telemetry).toHaveTextContent(/0 bytes to cloud/i);
   });
 
   it("shows reconnecting status", () => {
     render(<Header backendConnected={false} sseHealth="reconnecting" />);
 
-    expect(screen.getByRole("status")).toHaveTextContent(/Reconnecting/i);
+    const statuses = screen.getAllByRole("status");
+    const telemetry = statuses.find((el) => el.textContent?.includes("Reconnecting"));
+    expect(telemetry).toHaveTextContent(/SSE stream retrying/i);
   });
 
   it("shows offline status when disconnected", () => {
     render(<Header backendConnected={false} sseHealth="disconnected" />);
 
-    const status = screen.getByRole("status");
-    expect(status).toHaveTextContent(/Stream offline/i);
-    expect(status).toHaveTextContent(/Demo state only/i);
+    const statuses = screen.getAllByRole("status");
+    const telemetry = statuses.find((el) => el.textContent?.includes("Stream offline"));
+    expect(telemetry).toHaveTextContent(/Demo state only/i);
   });
 
-  it("fires onRunNormalMorning from Run demo button", async () => {
-    const onRun = vi.fn();
-    const user = userEvent.setup();
-    render(
-      <Header backendConnected sseHealth="connected" onRunNormalMorning={onRun} />
-    );
-
-    await user.click(screen.getByRole("button", { name: /Run demo/i }));
-    expect(onRun).toHaveBeenCalledOnce();
-  });
-
-  it("shows overlay-only dispatch label from status", () => {
+  it("shows overlay-only dispatch in masthead footer", () => {
     render(
       <Header
         backendConnected
@@ -59,8 +56,9 @@ describe("Header", () => {
       />
     );
 
-    expect(screen.getByText(/Overlay-only dispatch/i)).toBeInTheDocument();
-    expect(screen.getByText(/fall auto-dispatch on/i)).toBeInTheDocument();
+    const banner = screen.getByRole("banner");
+    expect(within(banner).getByText(/Overlay-only dispatch/i)).toBeInTheDocument();
+    expect(within(banner).getByText(/fall auto-dispatch on/i)).toBeInTheDocument();
   });
 
   it("shows WeCom ready when configured", () => {
@@ -78,18 +76,5 @@ describe("Header", () => {
     );
 
     expect(screen.getByText(/WeCom dispatch ready/i)).toBeInTheDocument();
-  });
-
-  it("disables Run demo while scenario is loading", () => {
-    render(
-      <Header
-        backendConnected
-        sseHealth="connected"
-        onRunNormalMorning={vi.fn()}
-        scenarioLoading
-      />
-    );
-
-    expect(screen.getByRole("button", { name: /Run demo/i })).toBeDisabled();
   });
 });

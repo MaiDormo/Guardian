@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { Play, Loader2 } from "lucide-react";
 import type { ReasoningPayload } from "../lib/types";
 import type { SSEHealth } from "../lib/useSSE";
 import { formatSignalLabel } from "../lib/signals";
@@ -17,8 +16,6 @@ import {
 
 interface ReasoningPanelProps {
   reasoning: ReasoningPayload[];
-  onRunNormalMorning?: () => void;
-  scenarioLoading?: boolean;
   sseHealth?: SSEHealth;
   /** Override env demo mode (used in tests). */
   demoMode?: boolean;
@@ -178,8 +175,6 @@ function shouldAutoScroll(
 
 export default function ReasoningPanel({
   reasoning,
-  onRunNormalMorning,
-  scenarioLoading = false,
   sseHealth = "disconnected",
   demoMode: demoModeProp,
 }: ReasoningPanelProps) {
@@ -226,25 +221,7 @@ export default function ReasoningPanel({
 
       <div className="console-terminal-bg flex-1 space-y-3 overflow-y-auto p-3 font-mono">
         {isEmpty ? (
-          <>
-            <ExampleEntry demoMode={demoMode} />
-            {onRunNormalMorning && (
-              <button
-                type="button"
-                onClick={onRunNormalMorning}
-                disabled={scenarioLoading}
-                aria-busy={scenarioLoading}
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-label-sm font-semibold text-on-primary transition-colors hover:bg-primary-container disabled:opacity-70"
-              >
-                {scenarioLoading ? (
-                  <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                ) : (
-                  <Play className="size-4" fill="currentColor" aria-hidden="true" />
-                )}
-                Run Normal Morning
-              </button>
-            )}
-          </>
+          <ExampleEntry demoMode={demoMode} />
         ) : (
           visibleReasoning.map((r, i) => (
             <Entry key={`${r.signal}-${r.updated_at}-${i}`} r={r} />
