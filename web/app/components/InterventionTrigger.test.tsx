@@ -43,6 +43,24 @@ describe("InterventionTrigger", () => {
     await waitFor(() => expect(onDispatch).toHaveBeenCalledOnce());
   });
 
+  it("shows dispatching overlay when clicked without callback", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <InterventionTrigger
+        interventionAck={null}
+        scenarioActive="trend_7day"
+        className="flex"
+      />
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: /Dispatch Local Emergency Care/i })
+    );
+
+    expect(screen.getByText(/Dispatching alert/i)).toBeInTheDocument();
+  });
+
   it("shows confirmation overlay when interventionAck arrives", () => {
     render(
       <InterventionTrigger interventionAck={ack} scenarioActive={null} className="flex" />

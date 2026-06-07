@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import Header from "./components/Header";
+import StreamOfflineBanner from "./components/StreamOfflineBanner";
 import FallBanner from "./components/FallBanner";
 import ZoneMap from "./components/ZoneMap";
 import LocationMap from "./components/LocationMap";
@@ -72,8 +73,14 @@ export default function Home() {
       <Header
         backendConnected={sse.backendConnected}
         sseHealth={sse.sseHealth}
+        dispatchChannels={sse.dispatchChannels}
         onRunNormalMorning={runNormalMorning}
         scenarioLoading={scenarioLoading === "normal"}
+      />
+
+      <StreamOfflineBanner
+        sseHealth={sse.sseHealth}
+        backendConnected={sse.backendConnected}
       />
 
       {showFall && (

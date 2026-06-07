@@ -9,13 +9,16 @@ const NAV_ITEMS = [
   { label: "Profile", icon: User, active: false, disabled: true },
 ];
 
+/** Only render tabs that are usable — disabled "coming soon" tabs stay out of the DOM. */
+const VISIBLE_NAV_ITEMS = NAV_ITEMS.filter((item) => !item.disabled);
+
 export default function BottomNav() {
   return (
     <nav
       aria-label="Main navigation"
       className="fixed bottom-0 z-50 flex h-20 w-full items-center justify-around rounded-t-xl border-t border-outline-variant/30 bg-surface/90 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-lg backdrop-blur-xl lg:hidden"
     >
-      {NAV_ITEMS.map((item) => {
+      {VISIBLE_NAV_ITEMS.map((item) => {
         const Icon = item.icon;
         return (
           <button

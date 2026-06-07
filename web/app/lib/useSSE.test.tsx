@@ -36,6 +36,8 @@ describe("useSSE", () => {
 
     expect(result.current.signals.woke_up?.state).toBe("green");
     expect(result.current.connectionWindow?.best_window).toBe("2:00 – 3:30 PM");
+    expect(result.current.dispatchChannels?.primary).toBe("overlay_only");
+    expect(result.current.dispatchChannels?.auto_dispatch_on_fall).toBe(true);
   });
 
   it("applies signal_update SSE events", async () => {
@@ -126,6 +128,79 @@ describe("useSSE", () => {
 
     await waitFor(() => {
       expect(result.current.connectionWindowLoading).toBe(false);
+    });
+  });
+
+  it("applies presence_update fall_detected and wandering_detected events", async () => {
+    const { result } = renderHook(() => useSSE());
+    MockEventSource.lastInstance?.simulateOpen();
+    await waitFor(() => expect(result.current.sseHealth).toBe("connected"));
+
+    MockEventSource.lastInstance?.simulateMessage({
+      event: "presence_update",
+      payload: {
+        room: "bathroom",
+        occupied: true,
+        fall: true,
+        updated_at: "2026-06-07T10:00:00Z",
+      },
+    });
+    MockEventSource.lastInstance?.simulateMessage({
+      event: "fall_detected",
+      payload: {
+        room: "bathroom",
+        posture: "lying",
+        stationary_s: 30,
+        confidence: 0.9,
+        updated_at: "2026-06-07T10:00:00Z",
+      },
+    });
+    MockEventSource.lastInstance?.simulateMessage({
+      event: "wandering_detected",
+      payload: {
+        trajectory_density_score: 0.2,
+        baseline_cluster_match: false,
+        minutes_outside_baseline_footprint: 12,
+        updated_at: "2026-06-07T11:00:00Z",
+      },
+    });
+
+    await waitFor(() => {
+      expect(result.current.presence.bathroom?.fall).toBe(true);
+      expect(result.current.fall?.room).toBe("bathroom");
+      expect(result.current.wandering?.minutes_outside_baseline_footprint).toBe(12);
+    });
+  });
+
+  it("appends reasoning and handles intervention_ack", async () => {
+    const { result } = renderHook(() => useSSE());
+    MockEventSource.lastInstance?.simulateOpen();
+    await waitFor(() => expect(result.current.sseHealth).toBe("connected"));
+
+    MockEventSource.lastInstance?.simulateMessage({
+      event: "reasoning_update",
+      payload: {
+        signal: "ate",
+        cosine_distance: 0.1,
+        baseline_window_days: 14,
+        features_considered: ["meal_time"],
+        rationale: "On time",
+        updated_at: "2026-06-07T08:00:00Z",
+      },
+    });
+    MockEventSource.lastInstance?.simulateMessage({
+      event: "intervention_ack",
+      payload: {
+        dispatched: true,
+        channel: "WeCom",
+        message_preview: "Alert sent",
+        updated_at: "2026-06-07T10:00:00Z",
+      },
+    });
+
+    await waitFor(() => {
+      expect(result.current.reasoning).toHaveLength(1);
+      expect(result.current.interventionAck?.message_preview).toBe("Alert sent");
     });
   });
 });

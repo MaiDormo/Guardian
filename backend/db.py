@@ -61,15 +61,7 @@ CREATE TABLE IF NOT EXISTS locations (
     baseline_cluster_match   INTEGER,
     cluster_id               INTEGER
 );
-
-CREATE TABLE IF NOT EXISTS baselines (
-    id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    day        TEXT NOT NULL,
-    signal     TEXT,
-    summary    TEXT NOT NULL,
-    created_at TEXT NOT NULL
-);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_baselines_day_signal ON baselines(day, COALESCE(signal, ''));
+CREATE INDEX IF NOT EXISTS idx_locations_timestamp ON locations(timestamp);
 
 CREATE TABLE IF NOT EXISTS voice_checkins (
     id                        INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -82,6 +74,16 @@ CREATE TABLE IF NOT EXISTS voice_checkins (
     duration_s                INTEGER,
     baseline_deviation_cosine REAL
 );
+CREATE INDEX IF NOT EXISTS idx_voice_checkins_timestamp ON voice_checkins(timestamp);
+
+CREATE TABLE IF NOT EXISTS baselines (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    day        TEXT NOT NULL,
+    signal     TEXT,
+    summary    TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_baselines_day_signal ON baselines(day, COALESCE(signal, ''));
 
 CREATE TABLE IF NOT EXISTS alerts (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -91,6 +93,7 @@ CREATE TABLE IF NOT EXISTS alerts (
     dispatched INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL
 );
+CREATE INDEX IF NOT EXISTS idx_alerts_created_dispatched ON alerts(created_at, dispatched);
 """
 
 _VEC_TABLE = """
@@ -115,6 +118,8 @@ def get_conn() -> sqlite3.Connection:
     _conn = sqlite3.connect(path, check_same_thread=False)
     _conn.row_factory = sqlite3.Row
     _conn.execute("PRAGMA journal_mode=WAL")
+    _conn.execute("PRAGMA wal_autocheckpoint=1000")
+    _conn.execute("PRAGMA busy_timeout=5000")
     _conn.execute("PRAGMA foreign_keys=ON")
 
     _init_schema(_conn)

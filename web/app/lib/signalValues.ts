@@ -1,4 +1,5 @@
 import type { SignalName, SignalStateData } from "./types";
+import { formatPatternMatch } from "./friendlyMetrics";
 
 function trimReason(r: string, max = 22): string {
   return r.length > max ? r.slice(0, max) + "…" : r;
@@ -61,7 +62,8 @@ export function getSignalValue(name: SignalName, data: SignalStateData): string 
 
 export function getSignalSubtitle(name: SignalName, data: SignalStateData): string {
   if (data.state === "unknown") return "";
-  if (data.cosine_distance != null) return `d=${data.cosine_distance.toFixed(2)}`;
+  const pattern = formatPatternMatch(data.cosine_distance);
+  if (pattern) return pattern;
   if (data.reason) return data.reason.slice(0, 40);
   return "";
 }

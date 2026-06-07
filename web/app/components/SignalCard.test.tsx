@@ -55,6 +55,6 @@ describe("SignalCard", () => {
       />
     );
 
-    expect(screen.getByText("d=0.15")).toBeInTheDocument();
+    expect(screen.getByText("Slightly off usual")).toBeInTheDocument();
   });
 });

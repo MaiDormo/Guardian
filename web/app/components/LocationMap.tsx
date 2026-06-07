@@ -2,6 +2,11 @@
 
 import { useState } from "react";
 import type { LocationUpdatePayload, WanderingPayload } from "../lib/types";
+import {
+  formatDistanceFromHome,
+  formatRouteFamiliarityPercent,
+  formatUsualArea,
+} from "../lib/friendlyMetrics";
 
 interface LocationMapProps {
   location: LocationUpdatePayload | null;
@@ -203,21 +208,17 @@ export default function LocationMap({ location, wandering }: LocationMapProps) {
             id={detailsId}
             className="fade-in grid grid-cols-2 gap-x-3 gap-y-1 rounded-lg border border-border/50 bg-surface-container p-2 font-mono text-label-sm tabular-nums text-muted-foreground"
           >
-            <dt>Density score</dt>
+            <dt>Route familiarity</dt>
             <dd className="text-right text-card-foreground">
-              {location?.trajectory_density_score.toFixed(2) ?? "—"}
+              {formatRouteFamiliarityPercent(location?.trajectory_density_score) ?? "—"}
             </dd>
-            <dt>Distance from home</dt>
+            <dt>From home</dt>
             <dd className="text-right text-card-foreground">
-              {location != null ? `${location.distance_from_home_m}m` : "—"}
+              {formatDistanceFromHome(location?.distance_from_home_m)}
             </dd>
-            <dt>Baseline cluster</dt>
+            <dt>Usual area</dt>
             <dd className="text-right text-card-foreground">
-              {location == null
-                ? "—"
-                : location.baseline_cluster_match
-                  ? "Match"
-                  : "No match"}
+              {formatUsualArea(location?.baseline_cluster_match)}
             </dd>
             {location?.updated_at && (
               <>

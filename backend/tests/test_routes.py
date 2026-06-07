@@ -64,6 +64,30 @@ async def test_status_includes_all_8_signals(client):
     )
 
 
+async def test_status_includes_dispatch_channel_summary(client):
+    """Dashboard can show whether WeCom/WhatsApp is configured."""
+    r = await client.get("/status")
+    dispatch = r.json().get("dispatch", {})
+    assert dispatch.get("primary") in {"wecom", "whatsapp", "overlay_only"}
+    assert isinstance(dispatch.get("wecom_configured"), bool)
+    assert isinstance(dispatch.get("whatsapp_configured"), bool)
+    assert isinstance(dispatch.get("auto_dispatch_on_fall"), bool)
+
+
+async def test_status_dispatch_primary_wecom_when_webhook_set(client, monkeypatch):
+    import main
+
+    monkeypatch.setattr(
+        main,
+        "WECOM_WEBHOOK_URL",
+        "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=live-demo-key",
+    )
+    r = await client.get("/status")
+    dispatch = r.json()["dispatch"]
+    assert dispatch["primary"] == "wecom"
+    assert dispatch["wecom_configured"] is True
+
+
 # ── /ingest ───────────────────────────────────────────────────────────────────
 
 async def test_ingest_accepts_presence_event(client):
@@ -277,6 +301,25 @@ async def test_intervention_message_preview_contains_location(client):
     r = await client.post("/trigger/intervention",
                           json={"location": "Shenzhen"})
     assert "Shenzhen" in r.json()["message_preview"]
+
+
+async def test_trend_scenario_finishes_with_day7_red_signals(client):
+    """PRD § 7 Scenario B: trend_7day must reach voice/location/routine red."""
+    import asyncio
+    import main
+
+    r = await client.post("/scenario/trend_7day")
+    assert r.status_code == 200
+
+    if main._scenario_task:
+        await asyncio.wait_for(main._scenario_task, timeout=35.0)
+
+    sig = main.signal_state
+    assert sig["voice_checkin"]["state"] == "red"
+    assert sig["location"]["state"] == "red"
+    assert sig["routine"]["state"] == "red"
+    assert sig["routine"]["cosine_distance"] is not None
+    assert sig["routine"]["cosine_distance"] >= 0.35
 
 
 async def test_fall_scenario_auto_dispatches_alert(client, monkeypatch):

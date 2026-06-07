@@ -6,6 +6,11 @@ import type { SignalStateData, ReasoningPayload } from "../lib/types";
 import type { SignalName } from "../lib/types";
 import { formatSignalLabel } from "../lib/signals";
 import { getSignalValue, getSignalSubtitle } from "../lib/signalValues";
+import {
+  formatBaselineComparison,
+  formatPatternMatch,
+  humanizeFeatures,
+} from "../lib/friendlyMetrics";
 import { SignalIcon } from "../lib/icons";
 
 interface SignalCardProps {
@@ -27,9 +32,8 @@ export default function SignalCard({ data, reasoning }: SignalCardProps) {
   const value = getSignalValue(data.signal as SignalName, data);
   const subtitle =
     getSignalSubtitle(data.signal as SignalName, data) ||
-    (reasoning?.cosine_distance != null
-      ? `d=${reasoning.cosine_distance.toFixed(2)}`
-      : "");
+    formatPatternMatch(reasoning?.cosine_distance) ||
+    "";
   const hasReasoning = Boolean(reasoning?.rationale || data.reason);
   const rationaleId = `signal-reasoning-${data.signal}`;
 
@@ -74,7 +78,7 @@ export default function SignalCard({ data, reasoning }: SignalCardProps) {
       )}
 
       {subtitle && data.state !== "unknown" && (
-        <p className="font-mono text-label-sm tabular-nums text-muted-foreground">{subtitle}</p>
+        <p className="text-label-sm text-pretty text-muted-foreground">{subtitle}</p>
       )}
 
       {hasReasoning && data.state !== "unknown" && (
@@ -100,13 +104,16 @@ export default function SignalCard({ data, reasoning }: SignalCardProps) {
                 {reasoning?.rationale ?? data.reason}
               </p>
               {reasoning && (
-                <p className="font-mono text-label-sm text-muted-foreground/70">
-                  {reasoning.cosine_distance != null &&
-                    `d=${reasoning.cosine_distance.toFixed(2)}`}
-                  {reasoning.baseline_window_days != null &&
-                    ` · ${reasoning.baseline_window_days}d baseline`}
-                  {reasoning.features_considered.length > 0 &&
-                    ` · ${reasoning.features_considered.join(", ")}`}
+                <p className="text-label-sm text-muted-foreground/70">
+                  {[
+                    formatPatternMatch(reasoning.cosine_distance),
+                    formatBaselineComparison(reasoning.baseline_window_days),
+                    reasoning.features_considered.length > 0
+                      ? `Signals checked: ${humanizeFeatures(reasoning.features_considered)}`
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
                 </p>
               )}
             </div>

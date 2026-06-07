@@ -19,6 +19,15 @@ import { apiUrl } from "./api";
 
 export type SSEHealth = "connected" | "reconnecting" | "disconnected";
 
+export type DispatchPrimary = "wecom" | "whatsapp" | "overlay_only";
+
+export interface DispatchChannels {
+  primary: DispatchPrimary;
+  wecom_configured: boolean;
+  whatsapp_configured: boolean;
+  auto_dispatch_on_fall: boolean;
+}
+
 export interface SSEState {
   signals: Record<string, SignalStateData>;
   presence: Record<string, PresencePayload>;
@@ -33,6 +42,7 @@ export interface SSEState {
   scenarioActive: string | null;
   backendConnected: boolean;
   sseHealth: SSEHealth;
+  dispatchChannels: DispatchChannels | null;
 }
 
 /** Honest empty state — used after scenario resets. */
@@ -51,6 +61,7 @@ function createEmptyState(): SSEState {
     scenarioActive: null,
     backendConnected: false,
     sseHealth: "disconnected",
+    dispatchChannels: null,
   };
 }
 
@@ -104,6 +115,7 @@ async function hydrateFromBackend(
       signals: status.signals ? signalsFromStatus(status.signals) : prev.signals,
       connectionWindow:
         connection?.best_window ? connection : prev.connectionWindow,
+      dispatchChannels: status.dispatch ?? prev.dispatchChannels,
     }));
   } catch {
     setState((prev) => ({

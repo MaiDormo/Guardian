@@ -139,6 +139,80 @@ async def test_fall_interrupt_reasoning_has_required_fields():
     assert not missing, f"reasoning_update payload missing: {missing}"
 
 
+async def test_assess_signal_falls_back_when_ollama_unreachable():
+    """Live path: when Ollama is down, emit placeholder reasoning (not silence)."""
+    from agent import GuardianAgent
+
+    emitted = []
+
+    async def mock_broadcast(event: dict) -> None:
+        emitted.append(event)
+
+    agent = GuardianAgent(broadcast=mock_broadcast)
+    agent._ollama_ok = False
+    agent.set_scenario("live_only")
+
+    await agent.assess_signal(
+        "routine",
+        "amber",
+        {"routine": {"state": "amber", "cosine_distance": 0.19, "updated_at": "t"}},
+    )
+
+    reasoning = [e for e in emitted if e.get("event") == "reasoning_update"]
+    assert len(reasoning) == 1
+    assert "Ollama not reachable" in reasoning[0]["payload"]["rationale"]
+
+
+async def test_assess_signal_live_failure_falls_back_to_placeholder():
+    """Live path: _live_assess exception must not crash assess_signal."""
+    from agent import GuardianAgent
+
+    emitted = []
+
+    async def mock_broadcast(event: dict) -> None:
+        emitted.append(event)
+
+    agent = GuardianAgent(broadcast=mock_broadcast)
+    agent._ollama_ok = True
+    agent.set_scenario("live_only")
+
+    async def boom(*_args, **_kwargs):
+        raise RuntimeError("ollama timeout")
+
+    agent._live_assess = boom  # type: ignore[method-assign]
+
+    await agent.assess_signal(
+        "voice_checkin",
+        "red",
+        {"voice_checkin": {"state": "red", "cosine_distance": 0.4, "updated_at": "t"}},
+    )
+
+    reasoning = [e for e in emitted if e.get("event") == "reasoning_update"]
+    assert len(reasoning) == 1
+    assert reasoning[0]["payload"]["signal"] == "voice_checkin"
+    assert "Ollama not reachable" in reasoning[0]["payload"]["rationale"]
+
+
+async def test_initialise_marks_ollama_unreachable_on_connection_error(monkeypatch):
+    from agent import GuardianAgent
+
+    class BoomClient:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return False
+
+        async def get(self, _url):
+            raise ConnectionError("refused")
+
+    monkeypatch.setattr("httpx.AsyncClient", lambda **_kw: BoomClient())
+
+    agent = GuardianAgent(ollama_host="http://127.0.0.1:1")
+    await agent.initialise()
+    assert agent._ollama_ok is False
+
+
 async def test_fall_interrupt_does_not_call_ollama():
     """PRD § 5.2: fall bypass — LLM must not be called for fall interrupt."""
     from agent import GuardianAgent

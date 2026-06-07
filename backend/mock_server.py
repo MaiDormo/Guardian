@@ -229,8 +229,10 @@ _active_task: asyncio.Task | None = None
 async def _run_scenario(name: str) -> None:
     sequence = SCENARIOS[name]
     log.info("▶ scenario %s started (%d events)", name, len(sequence))
+    prev_delay = 0.0
     for delay, event in sequence:
-        await asyncio.sleep(delay)
+        await asyncio.sleep(max(0.0, delay - prev_delay))
+        prev_delay = delay
         # Refresh timestamps so they look live
         if "payload" in event and "updated_at" in event["payload"]:
             event["payload"]["updated_at"] = _ts()

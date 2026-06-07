@@ -339,7 +339,11 @@ class GuardianAgent:
 
         # 2. Fall back to live Ollama
         if reasoning is None and self._ollama_ok:
-            reasoning = await self._live_assess(signal, state)
+            try:
+                reasoning = await self._live_assess(signal, state)
+            except Exception as exc:
+                log.warning("Live assess raised (%s) — using placeholder", exc)
+                reasoning = None
 
         # 3. Nothing available — emit minimal placeholder
         if reasoning is None:

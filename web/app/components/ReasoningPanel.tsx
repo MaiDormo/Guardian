@@ -5,6 +5,10 @@ import { Play, Loader2 } from "lucide-react";
 import type { ReasoningPayload } from "../lib/types";
 import type { SSEHealth } from "../lib/useSSE";
 import { formatSignalLabel } from "../lib/signals";
+import {
+  formatPatternMatchConsole,
+  humanizeFeatures,
+} from "../lib/friendlyMetrics";
 
 interface ReasoningPanelProps {
   reasoning: ReasoningPayload[];
@@ -35,13 +39,15 @@ function ReasoningEntry({ r }: { r: ReasoningPayload }) {
     <div className="border-b border-inverse-on-surface/15 pb-2">
       <div className="text-label-sm leading-relaxed text-inverse-on-surface/80">
         <span className="text-primary-fixed">&lt;context&gt;</span> signal={r.signal}
-        {typeof r.cosine_distance === "number" && (
-          <> · cosine=<span className="tabular-nums">{r.cosine_distance.toFixed(2)}</span></>
+        {formatPatternMatchConsole(r.cosine_distance) && (
+          <> · pattern={formatPatternMatchConsole(r.cosine_distance)}</>
         )}
-        {typeof r.baseline_window_days === "number" && <> · window={r.baseline_window_days}d</>}
+        {typeof r.baseline_window_days === "number" && (
+          <> · baseline={r.baseline_window_days}d</>
+        )}
         <br />
         <span className="pl-[58px]">
-          features=[{(r.features_considered ?? []).join(", ")}]
+          checked=[{humanizeFeatures(r.features_considered ?? [])}]
         </span>{" "}
         <span className="text-primary-fixed">&lt;/context&gt;</span>
       </div>
@@ -65,10 +71,10 @@ function ExampleEntry() {
         </span>
       </div>
       <div className="text-label-sm leading-relaxed text-inverse-on-surface/50">
-        <span className="text-primary-fixed/70">&lt;context&gt;</span> signal=woke_up · cosine=0.04 ·
-        window=14d
+        <span className="text-primary-fixed/70">&lt;context&gt;</span> signal=woke_up · pattern=usual ·
+        baseline=14d
         <br />
-        <span className="pl-[58px]">features=[wake_time, motion]</span>{" "}
+        <span className="pl-[58px]">checked=[wake time, motion]</span>{" "}
         <span className="text-primary-fixed/70">&lt;/context&gt;</span>
       </div>
       <div className="text-body-sm leading-relaxed text-inverse-on-surface/50">

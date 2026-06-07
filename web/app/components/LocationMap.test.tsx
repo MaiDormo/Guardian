@@ -41,10 +41,10 @@ describe("LocationMap", () => {
     render(<LocationMap location={locationNormal} wandering={null} />);
 
     await user.click(screen.getByRole("button", { name: /Details/i }));
-    expect(screen.getByText("Density score")).toBeInTheDocument();
-    expect(screen.getByText("0.91")).toBeInTheDocument();
-    expect(screen.getByText("0m")).toBeInTheDocument();
-    expect(screen.getByText("Match")).toBeInTheDocument();
+    expect(screen.getByText("Route familiarity")).toBeInTheDocument();
+    expect(screen.getByText("91%")).toBeInTheDocument();
+    expect(screen.getByText("At home")).toBeInTheDocument();
+    expect(screen.getAllByText("Usual area").length).toBeGreaterThanOrEqual(1);
   });
 
   it("shows learning message when location is null", () => {

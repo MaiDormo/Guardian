@@ -7,6 +7,12 @@ import type {
 const API = "http://localhost:8000";
 
 export const defaultStatus = {
+  dispatch: {
+    primary: "overlay_only" as const,
+    wecom_configured: false,
+    whatsapp_configured: false,
+    auto_dispatch_on_fall: true,
+  },
   signals: {
     woke_up: {
       signal: "woke_up",

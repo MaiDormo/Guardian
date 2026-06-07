@@ -11,13 +11,12 @@ describe("BottomNav", () => {
     expect(home).not.toBeDisabled();
   });
 
-  it("disables coming-soon tabs with tabIndex -1", () => {
+  it("hides coming-soon tabs from the navigation", () => {
     render(<BottomNav />);
 
-    for (const label of ["Timeline", "Sensors", "Profile"]) {
-      const btn = screen.getByRole("button", { name: `${label} (coming soon)` });
-      expect(btn).toBeDisabled();
-      expect(btn).toHaveAttribute("tabindex", "-1");
-    }
+    expect(screen.getAllByRole("button")).toHaveLength(1);
+    expect(screen.queryByRole("button", { name: /Timeline/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Sensors/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Profile/i })).not.toBeInTheDocument();
   });
 });

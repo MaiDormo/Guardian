@@ -382,8 +382,10 @@ async def _run_scenario(name: str) -> None:
     scenario_clock = datetime.now(timezone.utc).replace(
         hour=8, minute=0, second=0, microsecond=0
     )
+    prev_delay = 0.0
     for delay, evt in events:
-        await asyncio.sleep(delay)
+        await asyncio.sleep(max(0.0, delay - prev_delay))
+        prev_delay = delay
         evt["timestamp"] = (scenario_clock + timedelta(seconds=delay)).isoformat()
         await _ingest_and_broadcast(evt)
     log.info("✓ scenario '%s' complete", name)
@@ -537,6 +539,37 @@ async def health() -> dict:
     return {"status": "ok", "clients": len(_clients), "fall_active": fall_active}
 
 
+def _is_real_credential(value: str, placeholders: tuple[str, ...]) -> bool:
+    if not value:
+        return False
+    lowered = value.lower()
+    return not any(p in lowered for p in placeholders)
+
+
+def _dispatch_channel_status() -> dict:
+    """Surface which caregiver dispatch channels are configured (no secrets)."""
+    wecom_configured = _is_real_credential(
+        WECOM_WEBHOOK_URL, ("your_key", "example.com", "placeholder")
+    )
+    whatsapp_configured = _is_real_credential(
+        WHATSAPP_TOKEN, ("your_whatsapp", "placeholder", "example")
+    ) and _is_real_credential(WHATSAPP_PHONE_ID, ("your_phone", "placeholder", "example"))
+
+    if wecom_configured:
+        primary = "wecom"
+    elif whatsapp_configured:
+        primary = "whatsapp"
+    else:
+        primary = "overlay_only"
+
+    return {
+        "primary": primary,
+        "wecom_configured": wecom_configured,
+        "whatsapp_configured": whatsapp_configured,
+        "auto_dispatch_on_fall": AUTO_DISPATCH_ON_FALL,
+    }
+
+
 @app.get("/status")
 async def status() -> dict:
     """Powers the [● Running On-Device · Gemma 4 · 0 Bytes to Cloud] badge."""
@@ -556,6 +589,7 @@ async def status() -> dict:
         "ollama_host": OLLAMA_HOST,
         "clients_connected": len(_clients),
         "signals": signal_state,
+        "dispatch": _dispatch_channel_status(),
     }
 
 

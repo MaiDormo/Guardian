@@ -45,6 +45,41 @@ describe("Header", () => {
     expect(onRun).toHaveBeenCalledOnce();
   });
 
+  it("shows overlay-only dispatch label from status", () => {
+    render(
+      <Header
+        backendConnected
+        sseHealth="connected"
+        dispatchChannels={{
+          primary: "overlay_only",
+          wecom_configured: false,
+          whatsapp_configured: false,
+          auto_dispatch_on_fall: true,
+        }}
+      />
+    );
+
+    expect(screen.getByText(/Overlay-only dispatch/i)).toBeInTheDocument();
+    expect(screen.getByText(/fall auto-dispatch on/i)).toBeInTheDocument();
+  });
+
+  it("shows WeCom ready when configured", () => {
+    render(
+      <Header
+        backendConnected
+        sseHealth="connected"
+        dispatchChannels={{
+          primary: "wecom",
+          wecom_configured: true,
+          whatsapp_configured: false,
+          auto_dispatch_on_fall: true,
+        }}
+      />
+    );
+
+    expect(screen.getByText(/WeCom dispatch ready/i)).toBeInTheDocument();
+  });
+
   it("disables Run demo while scenario is loading", () => {
     render(
       <Header

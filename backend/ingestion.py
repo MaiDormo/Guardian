@@ -170,6 +170,16 @@ def reset_state() -> None:
     except Exception as exc:
         log.warning("voice_checkin.reset_voice_state failed (%s)", exc)
 
+    # Scenario replays use fixed timestamps — clear replay log so dedup never
+    # drops Day-7 voice/wandering events on the second demo run.
+    try:
+        from db import get_conn  # noqa: PLC0415
+        conn = get_conn()
+        conn.execute("DELETE FROM events")
+        conn.commit()
+    except Exception as exc:
+        log.warning("events table clear failed (%s)", exc)
+
     # Re-init DB on next event (picks up a fresh guardian.db if scenario resets it)
     _db_ready = False
 

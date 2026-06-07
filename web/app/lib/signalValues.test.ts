@@ -82,10 +82,10 @@ describe("getSignalSubtitle", () => {
     expect(getSignalSubtitle("ate", makeSignal("ate", { state: "unknown" }))).toBe("");
   });
 
-  it("formats cosine distance when present", () => {
+  it("formats pattern match when cosine distance is present", () => {
     expect(
       getSignalSubtitle("ate", makeSignal("ate", { cosine_distance: 0.1234 }))
-    ).toBe("d=0.12");
+    ).toBe("Slightly off usual");
   });
 
   it("falls back to reason slice when no cosine", () => {
