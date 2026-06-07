@@ -9,9 +9,9 @@ interface ReasoningPanelProps {
 }
 
 const VERDICT_GLYPH: Record<"red" | "amber" | "green", { glyph: string; cls: string }> = {
-  red: { glyph: "●", cls: "text-alert" },
-  amber: { glyph: "●", cls: "text-warn" },
-  green: { glyph: "●", cls: "text-ok" },
+  red: { glyph: "●", cls: "text-error" },
+  amber: { glyph: "●", cls: "text-amber-400" },
+  green: { glyph: "●", cls: "text-primary-fixed" },
 };
 
 function inferState(r: ReasoningPayload): "red" | "amber" | "green" {
@@ -30,14 +30,14 @@ function ReasoningEntry({ r }: { r: ReasoningPayload }) {
     <div className="border-b border-border/40 pb-2">
       {/* <context> block — auditable inputs in, never the verdict */}
       <div className="text-[11px] leading-relaxed text-muted-foreground">
-        <span className="text-highlight/80">&lt;context&gt;</span> signal={r.signal}
+        <span className="text-primary-fixed">&lt;context&gt;</span> signal={r.signal}
         {typeof r.cosine_distance === "number" && <> · cosine={r.cosine_distance.toFixed(2)}</>}
         {typeof r.baseline_window_days === "number" && <> · window={r.baseline_window_days}d</>}
         <br />
         <span className="pl-[58px]">
           features=[{(r.features_considered ?? []).join(", ")}]
         </span>{" "}
-        <span className="text-highlight/80">&lt;/context&gt;</span>
+        <span className="text-primary-fixed">&lt;/context&gt;</span>
       </div>
       {/* verdict line — Gemma's judgement out, one line, plain language */}
       <div className="mt-1 text-[12px] leading-relaxed text-card-foreground">
@@ -58,14 +58,14 @@ export default function ReasoningPanel({ reasoning }: ReasoningPanelProps) {
   return (
     <section
       aria-label="Reasoning console"
-      className="flex min-h-0 flex-1 flex-col rounded-xl border border-border bg-[oklch(0.13_0.01_250)]"
+      className="flex min-h-0 flex-1 flex-col rounded-xl border border-border bg-inverse-surface"
     >
       <header className="flex items-center justify-between border-b border-border px-3 py-2">
         <h2 className="font-mono text-xs font-semibold uppercase tracking-widest text-muted-foreground">
           Reasoning Console
         </h2>
         <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-          <span className="size-1.5 animate-pulse rounded-full bg-ok" />
+          <span className="size-1.5 animate-pulse rounded-full bg-primary-fixed" />
           gemma 4 · on-device
         </span>
       </header>

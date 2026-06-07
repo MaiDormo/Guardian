@@ -4,22 +4,23 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Command-center dark theme (council-approved redesign — guardian-prd-v8.md §10)
-        console: "oklch(0.16 0.012 250)",
-        card: "oklch(0.2 0.014 250)",
-        "card-foreground": "oklch(0.92 0.01 240)",
-        border: "oklch(0.3 0.015 250)",
-        muted: "oklch(0.24 0.014 250)",
-        "muted-foreground": "oklch(0.66 0.015 245)",
-        accent: "oklch(0.28 0.016 250)",
-        ok: "oklch(0.72 0.16 155)",
-        "ok-foreground": "oklch(0.16 0.012 250)",
-        warn: "oklch(0.78 0.15 75)",
-        "warn-foreground": "oklch(0.16 0.012 250)",
-        alert: "oklch(0.62 0.23 22)",
-        "alert-foreground": "oklch(0.97 0.01 240)",
-        highlight: "oklch(0.66 0.16 248)",
-        "highlight-foreground": "oklch(0.16 0.012 250)",
+        // Council-redesign semantic aliases → mapped to team-approved Material Design 3 palette
+        // (palette sourced from mockup.html; light theme, signed off by team)
+        console: "#f8f9ff",            // page background (surface)
+        card: "#eff4ff",               // card surface (surface-container-low)
+        "card-foreground": "#0b1c30",  // text on card (on-surface)
+        border: "#bccac0",             // outline-variant
+        muted: "#e5eeff",              // surface-container
+        "muted-foreground": "#3d4a42", // on-surface-variant
+        accent: "#e5eeff",
+        ok: "#006948",                 // primary green = good signal
+        "ok-foreground": "#ffffff",    // on-primary
+        warn: "#b45309",               // amber-700 — not in MD3 set, close to warning
+        "warn-foreground": "#ffffff",
+        alert: "#ba1a1a",              // error — critical alert
+        "alert-foreground": "#ffffff", // on-error
+        highlight: "#006948",          // primary green — connection window accent
+        "highlight-foreground": "#ffffff",
         primary: "#006948",
         "primary-container": "#00855d",
         "on-primary": "#ffffff",

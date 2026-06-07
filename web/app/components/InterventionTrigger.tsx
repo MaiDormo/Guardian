@@ -67,7 +67,7 @@ export default function InterventionTrigger({ interventionAck, scenarioActive }:
           role="status"
           className="flex items-start gap-3 rounded-xl border border-ok/50 bg-ok/10 p-3 slide-up"
         >
-          <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-ok text-[oklch(0.16_0.012_250)]">
+          <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-on-primary">
             <Check className="size-4" aria-hidden="true" />
           </span>
           <div className="flex-1">

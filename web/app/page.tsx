@@ -22,7 +22,7 @@ export default function Home() {
   const showFall = sse.fall !== null && !fallDismissed;
 
   return (
-    <main className="flex h-dvh flex-col gap-3 overflow-hidden bg-console p-3 lg:p-4">
+    <main className="flex h-dvh flex-col gap-3 overflow-hidden bg-background p-3 lg:p-4">
       <Header backendConnected={sse.backendConnected} />
 
       {showFall && (

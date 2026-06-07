@@ -35,7 +35,7 @@ export default function LocationMap({ location, wandering }: LocationMapProps) {
         </span>
       </header>
 
-      <div className="relative flex-1 overflow-hidden rounded-lg border border-border bg-[oklch(0.18_0.013_250)]">
+      <div className="relative flex-1 overflow-hidden rounded-lg border border-outline-variant bg-surface-container-low">
         <svg
           viewBox="0 0 400 300"
           className="h-full w-full"
@@ -55,7 +55,7 @@ export default function LocationMap({ location, wandering }: LocationMapProps) {
               </feMerge>
             </filter>
             <pattern id="loc-grid" width="28" height="28" patternUnits="userSpaceOnUse">
-              <path d="M 28 0 L 0 0 0 28" fill="none" stroke="oklch(0.3 0.015 250)" strokeWidth="0.5" />
+              <path d="M 28 0 L 0 0 0 28" fill="none" stroke="#bccac0" strokeWidth="0.5" />
             </pattern>
           </defs>
 
@@ -66,7 +66,7 @@ export default function LocationMap({ location, wandering }: LocationMapProps) {
             <path
               d="M170 160 Q110 95 45 35 Q-10 110 30 185 Q90 230 170 160 Z"
               fill="none"
-              stroke="oklch(0.72 0.16 155)"
+              stroke="#006948"
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeDasharray="1 7"
@@ -79,14 +79,14 @@ export default function LocationMap({ location, wandering }: LocationMapProps) {
             <path
               d="M170 160 Q230 100 300 70 Q350 90 340 180 Q320 260 280 220"
               fill="none"
-              stroke="oklch(0.62 0.23 22)"
+              stroke="#ba1a1a"
               strokeWidth="3"
               strokeLinecap="round"
               filter="url(#loc-glow)"
             />
-            <circle cx="280" cy="220" r="5" fill="oklch(0.62 0.23 22)" filter="url(#loc-glow)" />
-            <circle cx="340" cy="180" r="3.5" fill="oklch(0.62 0.23 22)" opacity="0.6" />
-            <circle cx="300" cy="70" r="3.5" fill="oklch(0.62 0.23 22)" opacity="0.6" />
+            <circle cx="280" cy="220" r="5" fill="#ba1a1a" filter="url(#loc-glow)" />
+            <circle cx="340" cy="180" r="3.5" fill="#ba1a1a" opacity="0.6" />
+            <circle cx="300" cy="70" r="3.5" fill="#ba1a1a" opacity="0.6" />
           </g>
 
           {/* Named nodes */}
@@ -96,7 +96,7 @@ export default function LocationMap({ location, wandering }: LocationMapProps) {
                 cx={n.x}
                 cy={n.y}
                 r={n.id === "home" ? 6 : 3.5}
-                fill={n.id === "home" ? "oklch(0.66 0.16 248)" : "oklch(0.66 0.015 245)"}
+                fill={n.id === "home" ? "#006948" : "#6d7a72"}
                 className={n.id === "home" && isWandering ? "animate-blink-pin" : ""}
               />
               <text
@@ -104,7 +104,7 @@ export default function LocationMap({ location, wandering }: LocationMapProps) {
                 y={n.y - 11}
                 textAnchor="middle"
                 fontSize="9"
-                fill="oklch(0.66 0.015 245)"
+                fill="#6d7a72"
                 fontFamily="ui-monospace, monospace"
               >
                 {n.label}

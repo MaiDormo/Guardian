@@ -75,7 +75,7 @@ export default function ConnectionCard({ window: w, connectionAck }: ConnectionC
           type="button"
           onClick={handleNudge}
           disabled={nudged || sending}
-          className="flex items-center gap-1.5 rounded-lg bg-highlight px-3 py-1.5 text-xs font-semibold text-[oklch(0.16_0.012_250)] transition-colors hover:bg-highlight/90 disabled:opacity-70 ml-auto"
+          className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-on-primary transition-colors hover:bg-primary-container disabled:opacity-70 ml-auto"
         >
           {nudged ? (
             <>
