@@ -24,10 +24,10 @@ def voice_db(tmp_path, monkeypatch):
     db_path = tmp_path / "voice_test.db"
     monkeypatch.setenv("DB_PATH", str(db_path))
     import db
-    db._conn = None
+    db.reset_connection()
     conn = db.get_conn()
     yield conn
-    db._conn = None
+    db.reset_connection()
 
 
 def _seed_baseline(conn, *, n=10, event_ts="2026-06-15T10:00:00Z"):

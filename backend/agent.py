@@ -108,8 +108,8 @@ _CACHE: dict[tuple[str, str, str], dict] = {
         "baseline_window_days": 14,
         "features_considered": ["clarity_score", "response_latency_s"],
         "rationale": (
-            "Day 4: clarity score 0.74 (baseline 0.87, −15%). "
-            "Response latency 2.1s (baseline 1.2s, +75%). "
+            "Day 5: clarity score 0.68 (baseline 0.87, −22%). "
+            "Response latency 2.9s (baseline 1.2s, +142%). "
             "Mild deviation — monitoring closely."
         ),
     },

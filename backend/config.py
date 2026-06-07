@@ -60,6 +60,7 @@ VOICE_WEIGHT_CONFUSION: float = 0.20
 VOICE_LATENCY_ABSOLUTE_RED_S: float = 3.0
 VOICE_BASELINE_MIN_SAMPLES: int = 5
 VOICE_CONFUSION_FLOOR: float = 0.85
+VOICE_CLARITY_AMBER: float = 0.75  # clarity below this → amber (confusion still → red)
 
 # Safety reflex — auto-dispatch on fall_detected (main.py reads env; documented here)
 AUTO_DISPATCH_ON_FALL_DEFAULT: bool = True

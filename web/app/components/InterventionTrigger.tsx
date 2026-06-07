@@ -8,6 +8,7 @@ import { dispatchIntervention } from "../lib/intervention";
 interface InterventionTriggerProps {
   interventionAck: InterventionAckPayload | null;
   scenarioActive: string | null;
+  interventionRecommended: boolean;
   onDispatch?: () => void;
   dispatching?: boolean;
   className?: string;
@@ -16,13 +17,14 @@ interface InterventionTriggerProps {
 export default function InterventionTrigger({
   interventionAck,
   scenarioActive,
+  interventionRecommended,
   onDispatch,
   dispatching: externalDispatching,
   className = "hidden lg:flex",
 }: InterventionTriggerProps) {
   const [internalSpinning, setInternalSpinning] = useState(false);
   const [showOverlay, setShowOverlay] = useState(false);
-  const available = interventionAck !== null || scenarioActive === "trend_7day";
+  const available = interventionRecommended;
   const spinning = externalDispatching ?? internalSpinning;
 
   useEffect(() => {

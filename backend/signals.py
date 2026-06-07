@@ -20,6 +20,7 @@ from config import (
     LOCATION_DENSITY_AMBER,
     ROUTINE_COSINE_AMBER,
     ROUTINE_COSINE_RED,
+    VOICE_CLARITY_AMBER,
     WOKE_WINDOW_END_H,
     WOKE_WINDOW_START_H,
 )
@@ -101,7 +102,13 @@ def update_signal_state(
 
     elif et == "voice_checkin_completed":
         confused: bool = bool(payload.get("confusion_markers", False))
-        state = "red" if confused else "green"
+        clarity = float(payload.get("clarity_score") or 1.0)
+        if confused:
+            state = "red"
+        elif clarity < VOICE_CLARITY_AMBER:
+            state = "amber"
+        else:
+            state = "green"
         reason = (
             f"Speech {payload.get('speech_rate_wpm')} wpm, "
             f"clarity {payload.get('clarity_score')}"

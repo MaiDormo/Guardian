@@ -186,8 +186,15 @@ async def _process_event_inplace(event: dict) -> list[dict]:
                                         f"Second presence detected in helper window"))
 
     elif et == "voice_checkin_completed":
+        from config import VOICE_CLARITY_AMBER  # noqa: PLC0415
         confused = payload.get("confusion_markers", False)
-        state = "red" if confused else "green"
+        clarity = float(payload.get("clarity_score") or 1.0)
+        if confused:
+            state = "red"
+        elif clarity < VOICE_CLARITY_AMBER:
+            state = "amber"
+        else:
+            state = "green"
         reason = (f"Speech {payload.get('speech_rate_wpm')} wpm, "
                   f"clarity {payload.get('clarity_score')}"
                   + (", confusion markers" if confused else ""))
@@ -293,66 +300,65 @@ SCENARIO_EVENTS: dict[str, list[tuple[float, dict]]] = {
                 "timestamp": "", "confidence": 1.0,
                 "payload": {"cosine_distance": 0.04}}),
     ],
-    # 7-Day Trend — condensed to ~28s wall time for demo Act 2
-    # Each "day" is ~4s. Day 7 fires voice_distress + wandering + missed dose.
+    # 7-Day Trend — ~12s wall time for stage (amber ~6s, Day 7 reds ~11s)
     "trend_7day": [
-        # Days 1-2: normal baseline
+        # Days 1-2: normal baseline (0-3s)
         (0.0,  {"event_type": "presence_detected", "source": "mmwave_ld2410",
                 "room": "bedroom", "timestamp": "", "confidence": 0.97,
                 "payload": {"targets": 1, "dwell_s": 0, "motion": "moving"}}),
-        (1.0,  {"event_type": "presence_detected", "source": "mmwave_ld2410",
+        (0.8,  {"event_type": "presence_detected", "source": "mmwave_ld2410",
                 "room": "kitchen", "timestamp": "", "confidence": 0.97,
                 "payload": {"targets": 1, "dwell_s": 1320, "motion": "stationary"}}),
-        (2.0,  {"event_type": "dispenser_opened", "source": "pill_dispenser",
+        (1.6,  {"event_type": "dispenser_opened", "source": "pill_dispenser",
                 "timestamp": "", "confidence": 1.0,
                 "payload": {"compartment": "morning", "expected_window_start": "08:00",
                             "delta_minutes": 11}}),
-        (3.0,  {"event_type": "voice_checkin_completed", "source": "voice_system",
+        (2.4,  {"event_type": "voice_checkin_completed", "source": "voice_system",
                 "timestamp": "", "confidence": 0.92,
                 "payload": {"speech_rate_wpm": 141, "clarity_score": 0.88,
                             "sentiment": "positive", "confusion_markers": False,
                             "response_latency_s": 1.1, "duration_s": 145}}),
-        (4.0,  {"event_type": "cosine_update", "source": "baseline",
+        (3.2,  {"event_type": "cosine_update", "source": "baseline",
                 "timestamp": "", "confidence": 1.0,
                 "payload": {"cosine_distance": 0.04}}),
-        # Day 3: first signs — kitchen dwell drops, cosine climbs
-        (8.0,  {"event_type": "presence_detected", "source": "mmwave_ld2410",
+        # Days 3-4: subtle drift (4-5s)
+        (4.0,  {"event_type": "presence_detected", "source": "mmwave_ld2410",
                 "room": "kitchen", "timestamp": "", "confidence": 0.97,
                 "payload": {"targets": 1, "dwell_s": 480, "motion": "stationary"}}),
-        (9.0,  {"event_type": "cosine_update", "source": "baseline",
+        (4.8,  {"event_type": "cosine_update", "source": "baseline",
                 "timestamp": "", "confidence": 1.0,
                 "payload": {"cosine_distance": 0.08}}),
-        # Day 5: amber — voice clarity drops, dwell minimal
-        (16.0, {"event_type": "presence_detected", "source": "mmwave_ld2410",
+        # Day 5: amber — voice clarity drops (~6s)
+        (5.5,  {"event_type": "presence_detected", "source": "mmwave_ld2410",
                 "room": "kitchen", "timestamp": "", "confidence": 0.97,
                 "payload": {"targets": 1, "dwell_s": 300, "motion": "stationary"}}),
-        (17.0, {"event_type": "voice_checkin_completed", "source": "voice_system",
+        (6.2,  {"event_type": "voice_checkin_completed", "source": "voice_system",
                 "timestamp": "", "confidence": 0.88,
                 "payload": {"speech_rate_wpm": 105, "clarity_score": 0.68,
                             "sentiment": "neutral", "confusion_markers": False,
                             "response_latency_s": 2.9, "duration_s": 110}}),
-        (18.0, {"event_type": "cosine_update", "source": "baseline",
+        (6.8,  {"event_type": "cosine_update", "source": "baseline",
                 "timestamp": "", "confidence": 1.0,
                 "payload": {"cosine_distance": 0.17}}),
-        # Day 7: crisis — voice distress + wandering + missed dose
-        (25.0, {"event_type": "voice_distress_detected", "source": "voice_system",
+        # Day 7: crisis — voice distress + wandering + missed dose (~11s)
+        (10.0, {"event_type": "voice_distress_detected", "source": "voice_system",
                 "timestamp": "", "confidence": 0.83,
                 "payload": {"speech_rate_wpm": 89, "clarity_score": 0.61,
                             "sentiment": "confused", "confusion_markers": True,
                             "response_latency_s": 4.7,
                             "baseline_deviation_cosine": 0.38}}),
-        (26.0, {"event_type": "wandering_detected", "source": "gps_tracker",
+        (10.5, {"event_type": "wandering_detected", "source": "gps_tracker",
                 "timestamp": "", "confidence": 0.88,
                 "payload": {"lat": 22.5512, "lng": 114.0701,
                             "distance_from_home_m": 1800,
                             "trajectory_density_score": 0.09,
                             "baseline_cluster_match": False,
                             "minutes_outside_baseline_footprint": 34}}),
-        (27.0, {"event_type": "dispenser_missed", "source": "pill_dispenser",
+        (11.0, {"event_type": "dispenser_missed", "source": "pill_dispenser",
                 "timestamp": "", "confidence": 1.0,
                 "payload": {"compartment": "morning",
                             "window_closed_at": "11:00", "minutes_overdue": 120}}),
-        (28.0, {"event_type": "cosine_update", "source": "baseline",
+        (11.5, {"event_type": "cosine_update", "source": "baseline",
                 "timestamp": "", "confidence": 1.0,
                 "payload": {"cosine_distance": 0.38}}),
     ],
@@ -470,6 +476,14 @@ async def _ingest_and_broadcast(event: dict) -> None:
 
     if had_fall:
         await _auto_dispatch_fall(event)
+        if HAS_AGENT and _agent is not None:
+            payload = event.get("payload") or {}
+            await _agent.fall_interrupt(
+                event.get("room") or "bathroom",
+                payload.get("posture", "unknown"),
+                int(payload.get("stationary_s") or 0),
+                float(event.get("confidence") or 1.0),
+            )
 
     # Optionally trigger agent reasoning (non-blocking)
     if HAS_AGENT and _agent and event.get("event_type") not in ("fall_detected",):
@@ -846,6 +860,7 @@ async def _broadcast_connection_suggestion() -> None:
     await _broadcast({"event": "connection_window", "payload": window})
 
     if HAS_AGENT and _agent is not None:
+        await _agent.assess_signal("routine", "green", signal_state)
         await _agent.assess_signal("connection_window", "suggested", signal_state)
 
 

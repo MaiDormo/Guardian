@@ -230,6 +230,23 @@ async def test_voice_checkin_normal_triggers_green():
     assert vc[0]["payload"]["state"] == "green"
 
 
+async def test_voice_checkin_mild_clarity_triggers_amber():
+    """Day 5 trend: clarity drop without confusion → voice_checkin amber."""
+    events = await process({
+        "event_type": "voice_checkin_completed",
+        "source": "voice_system",
+        "timestamp": "2026-06-06T10:05:00Z",
+        "confidence": 0.88,
+        "payload": {"speech_rate_wpm": 105, "clarity_score": 0.68,
+                    "sentiment": "neutral", "confusion_markers": False,
+                    "response_latency_s": 2.9, "duration_s": 110},
+    })
+    sig_updates = events_of_type(events, "signal_update")
+    vc = [e for e in sig_updates if e["payload"]["signal"] == "voice_checkin"]
+    assert len(vc) >= 1
+    assert vc[0]["payload"]["state"] == "amber"
+
+
 async def test_voice_checkin_confused_triggers_red():
     """PRD § 5.1: confusion markers → voice_checkin red."""
     events = await process({

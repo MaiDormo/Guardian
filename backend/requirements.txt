@@ -12,3 +12,7 @@ pydantic>=2.7.0
 sqlite-vec>=0.1.6
 numpy>=1.26.0
 scikit-learn>=1.4.0
+
+# Schema migrations
+alembic>=1.14.0
+sqlalchemy>=2.0.0

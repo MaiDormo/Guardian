@@ -14,7 +14,7 @@ import InterventionTrigger from "./components/InterventionTrigger";
 import Fab from "./components/Fab";
 import BottomNav from "./components/BottomNav";
 import { useSSE } from "./lib/useSSE";
-import { dispatchIntervention } from "./lib/intervention";
+import { dispatchIntervention, isInterventionRecommended } from "./lib/intervention";
 import { playFallAlert } from "./lib/fallAlert";
 
 export default function Home() {
@@ -47,11 +47,10 @@ export default function Home() {
   const connectionLoading =
     sse.connectionWindowLoading ||
     (sse.sseHealth === "reconnecting" && !sse.connectionWindow);
-  const interventionAvailable =
-    sse.interventionAck !== null ||
-    sse.scenarioActive === "trend_7day" ||
-    sse.signals.voice_checkin?.state === "red" ||
-    sse.signals.location?.state === "red";
+  const interventionAvailable = isInterventionRecommended(
+    sse.signals,
+    sse.interventionAck
+  );
 
   useEffect(() => {
     if (sse.fall && sse.interventionAck) {
@@ -120,6 +119,7 @@ export default function Home() {
         <InterventionTrigger
           interventionAck={sse.interventionAck}
           scenarioActive={sse.scenarioActive}
+          interventionRecommended={interventionAvailable}
           onDispatch={handleFabDispatch}
           dispatching={dispatching}
           className="flex lg:hidden"
@@ -162,6 +162,7 @@ export default function Home() {
           <InterventionTrigger
             interventionAck={sse.interventionAck}
             scenarioActive={sse.scenarioActive}
+            interventionRecommended={interventionAvailable}
             onDispatch={handleFabDispatch}
             dispatching={dispatching}
           />

@@ -322,6 +322,63 @@ async def test_trend_scenario_finishes_with_day7_red_signals(client):
     assert sig["routine"]["cosine_distance"] >= 0.35
 
 
+async def test_normal_scenario_emits_routine_reasoning(client, monkeypatch):
+    """Normal Morning must emit cached routine 0.04 reasoning for the demo console."""
+    import asyncio
+    import main
+    from agent import GuardianAgent
+
+    reasoning_events: list[dict] = []
+    original_broadcast = main._broadcast
+
+    async def capture_broadcast(event: dict) -> None:
+        if event.get("event") == "reasoning_update":
+            reasoning_events.append(event["payload"])
+        await original_broadcast(event)
+
+    monkeypatch.setattr(main, "_broadcast", capture_broadcast)
+    main._agent = GuardianAgent(broadcast=capture_broadcast)
+
+    r = await client.post("/scenario/normal")
+    assert r.status_code == 200
+
+    if main._scenario_task:
+        await asyncio.wait_for(main._scenario_task, timeout=20.0)
+
+    routine = [e for e in reasoning_events if e.get("signal") == "routine"]
+    assert len(routine) >= 1
+    assert "0.04" in routine[0]["rationale"]
+
+
+async def test_fall_scenario_emits_fall_reasoning(client, monkeypatch):
+    """Fall Override must emit priority-interrupt reasoning (safety-reflex tier)."""
+    import asyncio
+    import main
+    from agent import GuardianAgent
+
+    reasoning_events: list[dict] = []
+    original_broadcast = main._broadcast
+
+    async def capture_broadcast(event: dict) -> None:
+        if event.get("event") == "reasoning_update":
+            reasoning_events.append(event["payload"])
+        await original_broadcast(event)
+
+    monkeypatch.setattr(main, "_broadcast", capture_broadcast)
+    monkeypatch.setattr(main, "AUTO_DISPATCH_ON_FALL", False)
+    main._agent = GuardianAgent(broadcast=capture_broadcast)
+
+    r = await client.post("/scenario/fall")
+    assert r.status_code == 200
+
+    if main._scenario_task:
+        await main._scenario_task
+
+    fall = [e for e in reasoning_events if e.get("signal") == "fall_detected"]
+    assert len(fall) >= 1
+    assert "Priority interrupt" in fall[0]["rationale"]
+
+
 async def test_fall_scenario_auto_dispatches_alert(client, monkeypatch):
     """Safety-reflex: fall_detected must auto-dispatch without manual trigger."""
     import asyncio

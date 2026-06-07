@@ -11,16 +11,30 @@ const ack = {
 };
 
 describe("InterventionTrigger", () => {
-  it("shows recommended status when trend scenario is active", () => {
+  it("shows recommended status when intervention is recommended", () => {
     render(
       <InterventionTrigger
         interventionAck={null}
         scenarioActive="trend_7day"
+        interventionRecommended
         className="flex"
       />
     );
 
     expect(screen.getByRole("status")).toHaveTextContent(/intervention recommended/i);
+  });
+
+  it("does not show recommended status when trend is active but no red signals", () => {
+    render(
+      <InterventionTrigger
+        interventionAck={null}
+        scenarioActive="trend_7day"
+        interventionRecommended={false}
+        className="flex"
+      />
+    );
+
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
   it("dispatches via onDispatch callback", async () => {
@@ -30,7 +44,8 @@ describe("InterventionTrigger", () => {
     render(
       <InterventionTrigger
         interventionAck={null}
-        scenarioActive="trend_7day"
+        scenarioActive={null}
+        interventionRecommended
         onDispatch={onDispatch}
         className="flex"
       />
@@ -49,7 +64,8 @@ describe("InterventionTrigger", () => {
     render(
       <InterventionTrigger
         interventionAck={null}
-        scenarioActive="trend_7day"
+        scenarioActive={null}
+        interventionRecommended
         className="flex"
       />
     );
@@ -63,7 +79,12 @@ describe("InterventionTrigger", () => {
 
   it("shows confirmation overlay when interventionAck arrives", () => {
     render(
-      <InterventionTrigger interventionAck={ack} scenarioActive={null} className="flex" />
+      <InterventionTrigger
+        interventionAck={ack}
+        scenarioActive={null}
+        interventionRecommended
+        className="flex"
+      />
     );
 
     expect(screen.getByText(/Alert dispatched/i)).toBeInTheDocument();

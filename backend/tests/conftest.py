@@ -29,6 +29,11 @@ PRD_SCENARIOS = {"normal", "trend_7day", "fall"}
 @pytest.fixture(autouse=True)
 def reset_main_state():
     """Reset main.py in-memory state before every test."""
+    try:
+        import db
+        db.reset_connection()
+    except Exception:
+        pass
     import main
     main.signal_state = main._empty_state()
     main.fall_active = False
