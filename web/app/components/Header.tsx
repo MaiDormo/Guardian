@@ -1,31 +1,110 @@
 "use client";
 
+import Image from "next/image";
+import { Play, Loader2 } from "lucide-react";
+import type { SSEHealth } from "../lib/useSSE";
+
+const AH_MA_AVATAR =
+  "https://lh3.googleusercontent.com/aida-public/AB6AXuCPDQDaNis2_kUR_JRYlqWsG73aevDS3ReIO7IYZkVLRWRLvC8yW91R09XTfjAfEaIS4-qVdKBp-sqw89txQdV36juDlEyuXLzAV_j-29FdqXCc1tswgfydxmdlpzFP101aDS-UiJoR2xD4qnldm2CI6gQ6rb4imQPGk6CgHtULwLlGc1YWLkiFBckd6TW7X3XdYqAtZ3jeb9Uk9DES7192TAh6m-Ma5_t7obV-uVQFrM75H05ajTv6HZcCAZsEzToXY4ZaZTiszQMf";
+
 interface HeaderProps {
   backendConnected?: boolean;
+  sseHealth?: SSEHealth;
+  onRunNormalMorning?: () => void;
+  scenarioLoading?: boolean;
 }
 
-export default function Header({ backendConnected = false }: HeaderProps) {
+function healthStyles(health: SSEHealth, backendConnected: boolean) {
+  if (health === "connected" && backendConnected) {
+    return {
+      container: "border-ok/40 bg-ok/10 text-ok",
+      dot: "bg-ok animate-pulse",
+      label: "Live · SSE",
+      detail: "Running On-Device · Gemma 4 · 0 Bytes to Cloud",
+      srStatus: "Live stream connected. Running on-device with Gemma 4.",
+    };
+  }
+  if (health === "reconnecting") {
+    return {
+      container: "border-warn/40 bg-warn/10 text-warn",
+      dot: "bg-warn animate-pulse",
+      label: "Reconnecting…",
+      detail: "SSE stream retrying",
+      srStatus: "Stream reconnecting.",
+    };
+  }
+  return {
+    container: "border-error/30 bg-error/5 text-error",
+    dot: "bg-error/80",
+    label: "Stream offline",
+    detail: "Demo state only",
+    srStatus: "Stream offline. Showing demo state only.",
+  };
+}
+
+export default function Header({
+  backendConnected = false,
+  sseHealth = "disconnected",
+  onRunNormalMorning,
+  scenarioLoading = false,
+}: HeaderProps) {
+  const health = healthStyles(sseHealth, backendConnected);
+
   return (
     <header className="flex shrink-0 items-center justify-between gap-3">
-      <div className="flex items-baseline gap-2">
-        <h1 className="text-lg font-semibold tracking-tight text-card-foreground">Guardian</h1>
-        <span className="hidden text-xs text-muted-foreground sm:inline">
-          Ah-Ma · Shenzhen — monitored from Hong Kong
-        </span>
+      <div className="flex min-w-0 items-center gap-3">
+        <div className="relative size-10 shrink-0 overflow-hidden rounded-full border border-outline-variant shadow-panel">
+          <Image
+            src={AH_MA_AVATAR}
+            alt="Ah-Ma"
+            fill
+            className="object-cover"
+            sizes="40px"
+            priority
+          />
+        </div>
+        <div className="min-w-0 flex flex-col">
+          <p className="text-label-sm font-medium uppercase text-muted-foreground">Guardian</p>
+          <h1 className="truncate font-display text-balance text-headline-md text-primary leading-tight">
+            Ah-Ma
+          </h1>
+          <p className="truncate text-body-sm text-card-foreground">
+            Shenzhen · monitored from Hong Kong
+          </p>
+        </div>
       </div>
-      <div
-        className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide transition-colors ${
-          backendConnected
-            ? "border-ok/30 bg-ok/10 text-ok"
-            : "border-border bg-card text-muted-foreground"
-        }`}
-      >
-        <span
-          className={`size-1.5 rounded-full ${
-            backendConnected ? "bg-ok animate-pulse" : "bg-muted-foreground/40"
-          }`}
-        />
-        {backendConnected ? "Running On-Device · Gemma 4 · 0 Bytes to Cloud" : "Connecting…"}
+
+      <div className="flex shrink-0 items-center gap-2">
+        {onRunNormalMorning && (
+          <button
+            type="button"
+            onClick={onRunNormalMorning}
+            disabled={scenarioLoading}
+            className="hidden items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-label-sm font-semibold text-on-primary transition-colors hover:bg-primary-container disabled:opacity-70 sm:flex"
+          >
+            {scenarioLoading ? (
+              <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+            ) : (
+              <Play className="size-3.5" fill="currentColor" aria-hidden="true" />
+            )}
+            Run demo
+          </button>
+        )}
+
+        <div
+          className={`flex flex-col items-end gap-0.5 rounded-lg border px-3 py-1.5 transition-colors sm:flex-row sm:items-center sm:gap-2 ${health.container}`}
+          role="status"
+          aria-live="polite"
+        >
+          <span className="sr-only">{health.srStatus}</span>
+          <div className="flex items-center gap-1.5" aria-hidden="true">
+            <span className={`size-2 rounded-full ${health.dot}`} />
+            <span className="text-label-sm font-bold uppercase">{health.label}</span>
+          </div>
+          <span className="hidden text-label-sm font-medium uppercase opacity-80 lg:inline">
+            {health.detail}
+          </span>
+        </div>
       </div>
     </header>
   );

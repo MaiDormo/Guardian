@@ -89,6 +89,14 @@ def process_event(event: dict) -> list[dict]:
         log.warning("normalize failed (%s) — using raw event", exc)
         rec = _raw_normalize(event)
 
+    # ── 2b. Voice enrichment (deviation index; passthrough if pre-injected) ──
+    if et in ("voice_checkin_completed", "voice_distress_detected"):
+        try:
+            from voice_checkin import enrich_event  # noqa: PLC0415
+            rec = enrich_event(rec)
+        except Exception as exc:
+            log.warning("voice_checkin.enrich_event failed (%s)", exc)
+
     # ── 3. Persist (dedup) ───────────────────────────────────────────────────
     if not _write_event(rec):
         return []  # duplicate — skip all downstream processing
@@ -155,6 +163,12 @@ def reset_state() -> None:
         reset_seq()
     except Exception as exc:
         log.warning("edge_processor.reset_seq failed (%s)", exc)
+
+    try:
+        from voice_checkin import reset_voice_state  # noqa: PLC0415
+        reset_voice_state()
+    except Exception as exc:
+        log.warning("voice_checkin.reset_voice_state failed (%s)", exc)
 
     # Re-init DB on next event (picks up a fresh guardian.db if scenario resets it)
     _db_ready = False

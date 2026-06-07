@@ -3,16 +3,25 @@
 import { useState, useEffect } from "react";
 import { Siren, Check, X } from "lucide-react";
 import type { InterventionAckPayload } from "../lib/types";
+import { dispatchIntervention } from "../lib/intervention";
 
 interface InterventionTriggerProps {
   interventionAck: InterventionAckPayload | null;
   scenarioActive: string | null;
+  onDispatch?: () => void;
+  dispatching?: boolean;
 }
 
-export default function InterventionTrigger({ interventionAck, scenarioActive }: InterventionTriggerProps) {
-  const [spinning, setSpinning] = useState(false);
+export default function InterventionTrigger({
+  interventionAck,
+  scenarioActive,
+  onDispatch,
+  dispatching: externalDispatching,
+}: InterventionTriggerProps) {
+  const [internalSpinning, setInternalSpinning] = useState(false);
   const [showOverlay, setShowOverlay] = useState(false);
   const available = interventionAck !== null || scenarioActive === "trend_7day";
+  const spinning = externalDispatching ?? internalSpinning;
 
   useEffect(() => {
     if (scenarioActive) setShowOverlay(false);
@@ -20,33 +29,33 @@ export default function InterventionTrigger({ interventionAck, scenarioActive }:
 
   useEffect(() => {
     if (interventionAck) {
-      setSpinning(false);
+      setInternalSpinning(false);
       setShowOverlay(true);
     }
   }, [interventionAck]);
 
   const handleDispatch = async () => {
-    setSpinning(true);
+    if (onDispatch) {
+      await onDispatch();
+      return;
+    }
+    setInternalSpinning(true);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      await fetch(`${apiUrl}/trigger/intervention`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      });
+      await dispatchIntervention();
     } catch {
       /* overlay renders regardless of network */
     }
-    setTimeout(() => setSpinning(false), 600);
+    setTimeout(() => setInternalSpinning(false), 600);
   };
 
   return (
-    <section aria-label="Emergency dispatch" className="flex flex-col gap-2">
+    <section aria-label="Emergency dispatch" className="hidden flex-col gap-2 lg:flex">
       <button
         type="button"
         onClick={handleDispatch}
         disabled={spinning}
-        className={`flex w-full items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-bold uppercase tracking-wide transition-all duration-300 active:scale-[0.98] disabled:opacity-70 ${
+        aria-busy={spinning}
+        className={`flex w-full items-center justify-center gap-2 rounded-xl border px-4 py-3 text-body-sm font-bold uppercase transition-all duration-300 active:scale-[0.98] disabled:opacity-70 ${
           available
             ? "border-alert bg-alert text-alert-foreground hover:brightness-110"
             : "border-border bg-card text-muted-foreground hover:border-alert/50 hover:text-card-foreground"
@@ -57,7 +66,7 @@ export default function InterventionTrigger({ interventionAck, scenarioActive }:
       </button>
 
       {available && !showOverlay && (
-        <p className="text-center text-[10px] font-medium uppercase tracking-wide text-alert">
+        <p className="text-center text-label-sm font-medium uppercase text-alert" role="status">
           Anomaly flagged — intervention recommended
         </p>
       )}
@@ -65,19 +74,20 @@ export default function InterventionTrigger({ interventionAck, scenarioActive }:
       {showOverlay && interventionAck && (
         <div
           role="status"
-          className="flex items-start gap-3 rounded-xl border border-ok/50 bg-ok/10 p-3 slide-up"
+          aria-live="polite"
+          className="slide-up flex items-start gap-3 rounded-xl border border-ok/50 bg-ok/10 p-3"
         >
           <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-on-primary">
             <Check className="size-4" aria-hidden="true" />
           </span>
           <div className="flex-1">
-            <p className="text-sm font-semibold text-card-foreground">
+            <p className="text-body-sm font-semibold text-card-foreground">
               Alert dispatched — Shenzhen Care Network notified
             </p>
-            <p className="mt-1 font-mono text-[11px] leading-snug text-muted-foreground">
+            <p className="mt-1 font-mono text-label-sm leading-snug text-muted-foreground">
               {interventionAck.message_preview}
             </p>
-            <p className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">
+            <p className="mt-1 text-label-sm uppercase text-muted-foreground">
               via {interventionAck.channel}
             </p>
           </div>
@@ -85,9 +95,9 @@ export default function InterventionTrigger({ interventionAck, scenarioActive }:
             type="button"
             onClick={() => setShowOverlay(false)}
             aria-label="Dismiss confirmation"
-            className="text-muted-foreground hover:text-card-foreground transition-colors"
+            className="text-muted-foreground transition-colors hover:text-card-foreground"
           >
-            <X className="size-4" />
+            <X className="size-4" aria-hidden="true" />
           </button>
         </div>
       )}

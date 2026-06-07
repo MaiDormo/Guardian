@@ -1,4 +1,4 @@
-<!-- Generated: 2026-06-07 | Files scanned: 22 | Token estimate: ~800 -->
+<!-- Generated: 2026-06-07 | Files scanned: 24 | Token estimate: ~820 -->
 
 # Frontend — Next.js 14 App
 
@@ -23,7 +23,7 @@ web/app/
   components/
     Header.tsx             "Guardian" title + on-device badge wired to /status; 32 ln
     FallBanner.tsx         full-width red interrupt; dismiss button; 42 ln
-    ZoneMap.tsx            2×2 semantic room grid (bedroom/bathroom/living_room/kitchen);
+    ZoneMap.tsx            Abstract Zone Map — 2×2 semantic room grid (replaces literal SVG floor plan);
                            soft blue radar pulse on active node; bathroom goes red on fall; 87 ln
     LocationMap.tsx        SVG GBA trajectory heatmap; opacity toggle on wandering_detected; 138 ln
     ConnectionCard.tsx     Optimal Connection Window — best-call hour, avg voice clarity,

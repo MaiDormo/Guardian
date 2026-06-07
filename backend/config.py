@@ -51,3 +51,12 @@ CONNECTION_BASELINE_DAYS: int = 14     # days of presence history to query
 CONNECTION_WINDOW_START_H: int = 10    # earliest waking hour to consider
 CONNECTION_WINDOW_END_H: int = 20      # latest hour to consider
 CONNECTION_MIN_PRESENCE_FREQ: int = 3  # minimum days to count a recurring hour
+
+# Voice deviation index (voice_checkin.py) — reuses COLD_START_DAYS / ROUTINE_COSINE_* for thresholds
+VOICE_WEIGHT_CLARITY: float = 0.30
+VOICE_WEIGHT_LATENCY: float = 0.30
+VOICE_WEIGHT_SPEECH_RATE: float = 0.20
+VOICE_WEIGHT_CONFUSION: float = 0.20
+VOICE_LATENCY_ABSOLUTE_RED_S: float = 3.0
+VOICE_BASELINE_MIN_SAMPLES: int = 5
+VOICE_CONFUSION_FLOOR: float = 0.85

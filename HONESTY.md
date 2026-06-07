@@ -14,6 +14,8 @@ This document states plainly what is **real** and what is **mocked**, per the ha
 - **Signal logic.** `backend/signals.py` is a deterministic, unit-tested state machine. It — not the LLM — decides green/amber/red. Reproducible every run.
 - **Agent reasoning + false-alarm filter.** Gemma 4 produces the visible reasoning narrative and a logged "second opinion" that can downgrade likely false positives with an explicit rationale. It is advisory; it never overrides the rule layer.
 - **Fall fast path.** Synchronous, dependency-free; fires the alert in <10s (typically <1s) without waiting on the LLM, the baseline, or the network.
+- **Scenario accuracy gate.** `backend/tests/replay.py` feeds all four PRD §7 scenarios through `ingestion.process_event` and asserts ≥26/32 signal classifications (8 signals × 4 scenarios). Four amber-by-absence cells are scored as real misses — see `GAP/ALLOWANCE` in the test file.
+- **Voice deviation module.** `backend/voice_checkin.py` computes a normalized per-field deviation index (not true embedding cosine) with a passthrough guard for simulator-injected values.
 - **Dashboard + live pipeline.** Next.js dashboard, FastAPI + SSE, floor-plan radar view, scenario player — all driven by the same `/ingest` pipeline a real sensor would use.
 
 ## 🟡 Mocked (one seam, clearly labelled)
@@ -25,7 +27,6 @@ This document states plainly what is **real** and what is **mocked**, per the ha
 
 - No real wearable, EHR, or hospital integration is connected.
 - No FHIR export or EHR/hospital integration is implemented (formerly considered, out of scope).
-- No `tests/replay.py` scenario replay accuracy test runner (the standard `pytest` suite of 115 tests is used instead).
 - No live mmWave hardware is run during the demo.
 - No Cantonese voice check-in yet (roadmap v1).
 
@@ -35,7 +36,7 @@ This document states plainly what is **real** and what is **mocked**, per the ha
 
 1. **Privacy:** start the demo, then disconnect Wi-Fi/Ethernet. Signals, reasoning, and fall alerts continue. Nothing was talking to the cloud.
 2. **Determinism:** run a scenario twice via the scenario player (or standard tests); the signal-state sequence is identical.
-3. **No secrets:** `git log --all --full-history -- .env` is empty; `.env.example` contains only local paths/hosts (`OLLAMA_HOST`, `DB_PATH`, `MQTT_BROKER`).
-4. **Accuracy:** `pytest` runs the 115 unit and integration tests confirming state machine transitions and compliance.
+3. **No secrets:** `git log --all --full-history -- .env` is empty; `.env.example` contains only local paths/hosts (`OLLAMA_HOST`, `DB_PATH`, `BACKEND_URL`) plus optional WeCom/WhatsApp dispatch placeholders — no cloud AI keys.
+4. **Accuracy:** `pytest` runs 140 unit and integration tests, including the `replay.py` scenario accuracy gate and `voice_checkin.py` deviation module.
 
 The one thing we simulated is the radio wave. The thing that genuinely works is everything that turns it into care.

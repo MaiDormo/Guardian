@@ -15,16 +15,19 @@ interface SignalGridProps {
 
 export default function SignalGrid({ signals, reasoning }: SignalGridProps) {
   return (
-    <section aria-label="Vital signals" className="flex flex-col gap-2">
-      <header className="flex items-center justify-between">
-        <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+    <section
+      aria-label="Vital signals"
+      className="flex h-full min-h-0 flex-1 flex-col gap-2"
+    >
+      <header className="flex shrink-0 items-center justify-between">
+        <h2 className="text-label-md uppercase text-muted-foreground">
           Vital Signals
         </h2>
-        <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+        <span className="text-label-sm uppercase text-muted-foreground">
           8 daily signals
         </span>
       </header>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="grid min-h-0 flex-1 auto-rows-fr grid-cols-2 gap-2 sm:grid-cols-4">
         {SIGNAL_NAMES.map((name) => (
           <SignalCard
             key={name}

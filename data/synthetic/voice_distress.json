@@ -1,0 +1,68 @@
+{
+  "_meta": {
+    "description": "Escalating voice distress reference \u2014 NOT seeded; Day-7 pinned to trend_7day.json",
+    "owner": "Tanmay"
+  },
+  "days": [
+    {
+      "day": 5,
+      "label": "Mild drift",
+      "events": [
+        {
+          "event_type": "voice_checkin_completed",
+          "source": "voice_system",
+          "timestamp": "2026-05-05T10:20:00Z",
+          "confidence": 0.88,
+          "payload": {
+            "speech_rate_wpm": 105,
+            "clarity_score": 0.68,
+            "sentiment": "neutral",
+            "confusion_markers": false,
+            "response_latency_s": 2.9,
+            "duration_s": 110
+          }
+        }
+      ]
+    },
+    {
+      "day": 6,
+      "label": "Severe drift",
+      "events": [
+        {
+          "event_type": "voice_checkin_completed",
+          "source": "voice_system",
+          "timestamp": "2026-05-06T10:45:00Z",
+          "confidence": 0.87,
+          "payload": {
+            "speech_rate_wpm": 96,
+            "clarity_score": 0.64,
+            "sentiment": "confused",
+            "confusion_markers": false,
+            "response_latency_s": 3.8,
+            "duration_s": 98
+          }
+        }
+      ]
+    },
+    {
+      "day": 7,
+      "label": "Crisis \u2014 pinned to trend_7day",
+      "events": [
+        {
+          "event_type": "voice_distress_detected",
+          "source": "voice_system",
+          "timestamp": "2026-05-07T10:00:00Z",
+          "confidence": 0.83,
+          "payload": {
+            "speech_rate_wpm": 89,
+            "clarity_score": 0.61,
+            "sentiment": "confused",
+            "confusion_markers": true,
+            "response_latency_s": 4.7,
+            "baseline_deviation_cosine": 0.38
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Play, AlertTriangle, Loader2, RotateCcw } from "lucide-react";
-import { apiUrl } from "../lib/api";
+import { Play, AlertTriangle, Loader2 } from "lucide-react";
+import { runScenario } from "../lib/scenario";
 
 const SCENARIOS = [
   { name: "normal", label: "Normal Morning" },
@@ -12,37 +11,51 @@ const SCENARIOS = [
 
 interface ScenarioPlayerProps {
   onScenarioStart: () => void;
+  loading: string | null;
+  onLoadingChange: (name: string | null) => void;
 }
 
-export default function ScenarioPlayer({ onScenarioStart }: ScenarioPlayerProps) {
-  const [loading, setLoading] = useState<string | null>(null);
+export async function triggerScenario(
+  name: string,
+  onScenarioStart: () => void,
+  onLoadingChange: (name: string | null) => void
+): Promise<void> {
+  onLoadingChange(name);
+  onScenarioStart();
+  try {
+    await runScenario(name);
+  } catch {
+    /* fires regardless */
+  }
+  setTimeout(() => onLoadingChange(null), 500);
+}
 
-  const handleClick = async (name: string) => {
-    setLoading(name);
-    onScenarioStart();
-    try {
-      await fetch(`${apiUrl()}/scenario/${name}`, { method: "POST" });
-    } catch {
-      /* fires regardless */
-    }
-    setTimeout(() => setLoading(null), 500);
+export default function ScenarioPlayer({
+  onScenarioStart,
+  loading,
+  onLoadingChange,
+}: ScenarioPlayerProps) {
+  const handleClick = (name: string) => {
+    void triggerScenario(name, onScenarioStart, onLoadingChange);
   };
 
   return (
     <div className="flex flex-col gap-2">
       <header className="flex items-center justify-between">
-        <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+        <h2 className="text-label-md uppercase text-muted-foreground">
           Demo Engine
         </h2>
-        <RotateCcw className="size-3.5 text-muted-foreground/50" aria-hidden="true" />
       </header>
-      <div className="flex gap-2">
+      <div className="flex gap-2" role="group" aria-label="Demo scenarios">
         {SCENARIOS.map((s) => (
           <button
             key={s.name}
+            type="button"
             onClick={() => handleClick(s.name)}
             disabled={loading !== null}
-            className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold transition-all active:scale-95 disabled:opacity-60 ${
+            aria-busy={loading === s.name}
+            aria-label={`Run ${s.label} scenario`}
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-label-sm font-semibold transition-all active:scale-95 disabled:opacity-60 ${
               s.danger
                 ? "border-alert bg-alert/10 text-alert hover:bg-alert/20"
                 : loading === s.name
@@ -51,11 +64,11 @@ export default function ScenarioPlayer({ onScenarioStart }: ScenarioPlayerProps)
             }`}
           >
             {loading === s.name ? (
-              <Loader2 className="size-3.5 animate-spin" />
+              <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
             ) : s.danger ? (
-              <AlertTriangle className="size-3.5" />
+              <AlertTriangle className="size-3.5" aria-hidden="true" />
             ) : (
-              <Play className="size-3.5" fill="currentColor" />
+              <Play className="size-3.5" fill="currentColor" aria-hidden="true" />
             )}
             {s.label}
           </button>

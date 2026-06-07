@@ -69,8 +69,8 @@ module.exports = {
         "surface-tint": "#006c4a",
       },
       fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"],
-        display: ["Inter", "system-ui", "sans-serif"],
+        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        display: ["var(--font-display)", "Georgia", "serif"],
       },
       fontSize: {
         "headline-xl": ["40px", { lineHeight: "48px", letterSpacing: "-0.02em", fontWeight: "700" }],
@@ -98,6 +98,9 @@ module.exports = {
         gutter: "24px",
         "margin-mobile": "16px",
         "margin-desktop": "48px",
+      },
+      boxShadow: {
+        panel: "0 1px 3px rgb(11 28 48 / 0.06), 0 1px 2px rgb(11 28 48 / 0.04)",
       },
     },
   },

@@ -14,6 +14,7 @@ export default function ConnectionCard({ window: w, connectionAck }: ConnectionC
   const [expanded, setExpanded] = useState(false);
   const [nudged, setNudged] = useState(false);
   const [sending, setSending] = useState(false);
+  const rationaleId = "connection-rationale";
 
   if (!w) return null;
 
@@ -40,26 +41,28 @@ export default function ConnectionCard({ window: w, connectionAck }: ConnectionC
   return (
     <section
       aria-label="Optimal connection window"
-      className="flex flex-col gap-3 rounded-xl border border-highlight/40 bg-highlight/5 p-3"
+      className="flex flex-col gap-3 rounded-xl border border-primary/25 bg-surface-container-low p-3 shadow-panel"
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          <h2 className="text-label-md uppercase text-muted-foreground">
             Optimal Connection Window
           </h2>
-          <p className="mt-1 text-xl font-semibold text-card-foreground">{w.best_window}</p>
+          <p className="mt-1 font-display text-balance text-headline-md text-card-foreground">
+            {w.best_window}
+          </p>
         </div>
         {clarityPct && (
           <div className="text-right">
-            <p className="font-mono text-[10px] uppercase tracking-wide text-muted-foreground">
+            <p className="font-mono text-label-sm uppercase text-muted-foreground">
               voice clarity
             </p>
-            <p className="font-mono text-sm text-ok">{clarityPct}%</p>
+            <p className="font-mono text-body-sm tabular-nums text-ok">{clarityPct}%</p>
           </div>
         )}
       </div>
 
-      <p className="text-xs leading-snug text-muted-foreground">
+      <p className="text-pretty text-body-sm leading-snug text-muted-foreground">
         {w.overlap_with_child
           ? "Ah-Ma is reliably calm and clear-spoken in this window — you're both free."
           : "Ah-Ma's calm window doesn't fully overlap your schedule today."}
@@ -67,7 +70,7 @@ export default function ConnectionCard({ window: w, connectionAck }: ConnectionC
 
       <div className="flex items-center justify-between gap-2">
         {w.evidence?.presence_days != null && (
-          <span className="text-[11px] text-muted-foreground font-mono">
+          <span className="font-mono text-label-sm tabular-nums text-muted-foreground">
             {w.evidence.presence_days}/{w.evidence.baseline_days}d baseline
           </span>
         )}
@@ -75,7 +78,8 @@ export default function ConnectionCard({ window: w, connectionAck }: ConnectionC
           type="button"
           onClick={handleNudge}
           disabled={nudged || sending}
-          className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-on-primary transition-colors hover:bg-primary-container disabled:opacity-70 ml-auto"
+          aria-busy={sending}
+          className="ml-auto flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-label-sm font-semibold text-on-primary transition-colors hover:bg-primary-container disabled:opacity-70"
         >
           {nudged ? (
             <>
@@ -94,15 +98,23 @@ export default function ConnectionCard({ window: w, connectionAck }: ConnectionC
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center justify-center gap-1 text-[11px] text-muted-foreground/70 hover:text-muted-foreground transition-colors"
+        aria-expanded={expanded}
+        aria-controls={rationaleId}
+        className="flex items-center justify-center gap-1 text-label-sm text-muted-foreground/70 transition-colors hover:text-muted-foreground"
       >
         {expanded ? "Hide reasoning" : "Why this window?"}
-        {expanded ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
+        {expanded ? (
+          <ChevronUp className="size-3.5" aria-hidden="true" />
+        ) : (
+          <ChevronDown className="size-3.5" aria-hidden="true" />
+        )}
       </button>
 
       {expanded && (
-        <div className="border-t border-border/40 pt-2 space-y-1 fade-in">
-          <p className="text-xs leading-relaxed text-muted-foreground">{w.rationale}</p>
+        <div id={rationaleId} className="fade-in space-y-1 border-t border-border/40 pt-2">
+          <p className="text-pretty text-body-sm leading-relaxed text-muted-foreground">
+            {w.rationale}
+          </p>
         </div>
       )}
     </section>

@@ -14,15 +14,15 @@ export default function FallBanner({ fall, onDismiss }: FallBannerProps) {
   const roomLabel = fall.room.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
   return (
-    <div className="col-span-full slide-down">
+    <div className="col-span-full slide-down" role="alert" aria-live="assertive">
       <div className="flex items-center justify-between rounded-xl border border-alert bg-alert/10 px-4 py-3">
         <div className="flex items-center gap-3">
-          <AlertTriangle className="size-5 text-alert animate-pulse shrink-0" aria-hidden="true" />
+          <AlertTriangle className="size-5 shrink-0 text-alert animate-pulse" aria-hidden="true" />
           <div>
-            <p className="text-sm font-bold uppercase tracking-wide text-alert">
+            <p className="text-body-sm font-bold uppercase text-alert">
               Fall Detected · Safety-reflex tier
             </p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-label-sm text-pretty text-muted-foreground">
               {roomLabel} · {fall.posture} · {fall.stationary_s}s stationary ·{" "}
               {(fall.confidence * 100).toFixed(0)}% confidence
             </p>
@@ -32,9 +32,9 @@ export default function FallBanner({ fall, onDismiss }: FallBannerProps) {
           type="button"
           onClick={onDismiss}
           aria-label="Dismiss fall alert"
-          className="rounded-lg p-1.5 text-muted-foreground hover:bg-alert/10 hover:text-alert transition-colors"
+          className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-alert/10 hover:text-alert"
         >
-          <X className="size-4" />
+          <X className="size-4" aria-hidden="true" />
         </button>
       </div>
     </div>

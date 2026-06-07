@@ -26,12 +26,14 @@ log = logging.getLogger(__name__)
 _BACKEND_DIR = Path(__file__).parent
 _DATA_DIR = _BACKEND_DIR.parent / "data" / "synthetic"
 _GPS_NORMAL = _DATA_DIR / "gps_normal.json"
+_VOICE_NORMAL = _DATA_DIR / "voice_normal.json"
 
 
 def seed_all() -> None:
     """Run all seeders. Safe to call multiple times (INSERT OR IGNORE)."""
     log.info("seed.py: seeding 30-day baseline…")
     seed_gps_baseline()
+    seed_voice_baseline()
     seed_signal_summaries()
     seed_connection_baseline()
     log.info("seed.py: done.")
@@ -81,6 +83,54 @@ def seed_gps_baseline() -> None:
         log.info("seed_gps_baseline: inserted %d GPS points", inserted)
     except Exception as exc:
         log.warning("seed_gps_baseline failed (%s)", exc)
+
+
+def seed_voice_baseline() -> None:
+    """Load voice_normal.json into voice_checkins (fixed May 2026 window)."""
+    if not _VOICE_NORMAL.exists():
+        log.warning("voice_normal.json not found at %s — skipping voice seed", _VOICE_NORMAL)
+        return
+
+    try:
+        with open(_VOICE_NORMAL) as f:
+            data = json.load(f)
+    except Exception as exc:
+        log.warning("Failed to load voice_normal.json (%s)", exc)
+        return
+
+    try:
+        sys.path.insert(0, str(_BACKEND_DIR))
+        from db import get_conn  # noqa: PLC0415
+        conn = get_conn()
+
+        inserted = 0
+        for evt in data.get("events", []):
+            payload = evt.get("payload", {})
+            try:
+                conn.execute(
+                    """INSERT OR IGNORE INTO voice_checkins
+                       (timestamp, speech_rate_wpm, clarity_score, sentiment,
+                        confusion_markers, response_latency_s, duration_s,
+                        baseline_deviation_cosine)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (
+                        evt.get("timestamp"),
+                        payload.get("speech_rate_wpm"),
+                        payload.get("clarity_score"),
+                        payload.get("sentiment"),
+                        1 if payload.get("confusion_markers") else 0,
+                        payload.get("response_latency_s"),
+                        payload.get("duration_s"),
+                        0.04,
+                    ),
+                )
+                inserted += 1
+            except Exception:
+                pass
+        conn.commit()
+        log.info("seed_voice_baseline: inserted %d voice check-ins", inserted)
+    except Exception as exc:
+        log.warning("seed_voice_baseline failed (%s)", exc)
 
 
 def seed_signal_summaries() -> None:

@@ -49,7 +49,7 @@ The dashboard has three scenario buttons in the bottom panel:
 
 | Button | What it shows |
 |--------|--------------|
-| **▶ Normal Morning** | All 8 signal cards turn green. Floor plan traces bedroom → bathroom → kitchen. Reasoning panel: cosine distance 0.04. |
+| **▶ Normal Morning** | All 8 signal cards turn green. Zone map shows bedroom → bathroom → kitchen. Reasoning panel: cosine distance 0.04. |
 | **▶ 7-Day Trend** | 7-day drift at demo speed. Voice and Location go red on Day 7. Routine cosine climbs to 0.38. Intervention Trigger slides in. |
 | **🚨 Fall Override** | Immediate fall detection. Bathroom pulses red. Full-width banner. Reasoning: "Priority interrupt — bypassed agent loop." |
 
@@ -74,7 +74,7 @@ DEMO MACHINE (localhost)
 │
 └── Next.js dashboard  :3000
     ├── 8 signal cards             green/amber/red states via SSE
-    ├── SVG floor plan             room presence blips
+    ├── Abstract Zone Map          room presence blips
     ├── SVG location map           Glowing Heatmap Trace Layer
     ├── Reasoning panel            Gemma 4 rationale per signal
     └── Intervention Trigger       one-button caregiver dispatch
@@ -126,7 +126,7 @@ pip install -r backend/requirements-dev.txt
 pytest -v
 ```
 
-115 tests covering PRD § 5.6 SSE schema compliance, all route contracts, signal state machine, agent cache, and fall interrupt bypass.
+140 tests covering PRD § 5.6 SSE schema compliance, all route contracts, signal state machine, agent cache, fall interrupt bypass, voice deviation module, synthetic voice data, and the `replay.py` 32-cell accuracy gate.
 
 ---
 

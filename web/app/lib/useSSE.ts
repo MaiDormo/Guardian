@@ -17,6 +17,8 @@ import type {
 import { SIGNAL_NAMES, emptySignalState } from "./signals";
 import { apiUrl } from "./api";
 
+export type SSEHealth = "connected" | "reconnecting" | "disconnected";
+
 export interface SSEState {
   signals: Record<string, SignalStateData>;
   presence: Record<string, PresencePayload>;
@@ -29,6 +31,7 @@ export interface SSEState {
   location: LocationUpdatePayload | null;
   scenarioActive: string | null;
   backendConnected: boolean;
+  sseHealth: SSEHealth;
 }
 
 function demoConnectionWindow(): ConnectionWindowPayload {
@@ -65,6 +68,7 @@ function createEmptyState(): SSEState {
     location: null,
     scenarioActive: null,
     backendConnected: false,
+    sseHealth: "disconnected",
   };
 }
 
@@ -108,6 +112,7 @@ function createDemoState(): SSEState {
     },
     scenarioActive: null,
     backendConnected: false,
+    sseHealth: "reconnecting",
   };
 }
 
@@ -146,12 +151,16 @@ async function hydrateFromBackend(
     setState((prev) => ({
       ...prev,
       backendConnected: true,
+      sseHealth: "connected",
       signals: status.signals ? signalsFromStatus(status.signals) : prev.signals,
       connectionWindow:
         connection?.best_window ? connection : prev.connectionWindow,
     }));
   } catch {
-    /* stay on demo state */
+    setState((prev) => ({
+      ...prev,
+      sseHealth: prev.sseHealth === "connected" ? "connected" : "disconnected",
+    }));
   }
 }
 
@@ -170,6 +179,11 @@ export function useSSE() {
     const es = new EventSource(url);
     esRef.current = es;
 
+    setState((prev) => ({
+      ...prev,
+      sseHealth: "reconnecting",
+    }));
+
     es.onmessage = (event) => {
       try {
         const data: SSEEvent = JSON.parse(event.data);
@@ -180,6 +194,7 @@ export function useSSE() {
             setState((prev) => ({
               ...prev,
               backendConnected: true,
+              sseHealth: "connected",
               signals: { ...prev.signals, [p.signal]: p },
             }));
             break;
@@ -189,6 +204,7 @@ export function useSSE() {
             setState((prev) => ({
               ...prev,
               backendConnected: true,
+              sseHealth: "connected",
               presence: { ...prev.presence, [p.room]: p },
             }));
             break;
@@ -197,6 +213,7 @@ export function useSSE() {
             setState((prev) => ({
               ...prev,
               backendConnected: true,
+              sseHealth: "connected",
               location: data.payload,
             }));
             break;
@@ -205,6 +222,7 @@ export function useSSE() {
             setState((prev) => ({
               ...prev,
               backendConnected: true,
+              sseHealth: "connected",
               wandering: data.payload,
             }));
             break;
@@ -213,6 +231,7 @@ export function useSSE() {
             setState((prev) => ({
               ...prev,
               backendConnected: true,
+              sseHealth: "connected",
               fall: data.payload,
             }));
             break;
@@ -221,6 +240,7 @@ export function useSSE() {
             setState((prev) => ({
               ...prev,
               backendConnected: true,
+              sseHealth: "connected",
               reasoning: [...prev.reasoning, data.payload].slice(-20),
             }));
             break;
@@ -229,6 +249,7 @@ export function useSSE() {
             setState((prev) => ({
               ...prev,
               backendConnected: true,
+              sseHealth: "connected",
               interventionAck: data.payload,
             }));
             break;
@@ -237,6 +258,7 @@ export function useSSE() {
             setState((prev) => ({
               ...prev,
               backendConnected: true,
+              sseHealth: "connected",
               connectionWindow: data.payload,
             }));
             break;
@@ -245,6 +267,7 @@ export function useSSE() {
             setState((prev) => ({
               ...prev,
               backendConnected: true,
+              sseHealth: "connected",
               connectionAck: data.payload,
             }));
             break;
@@ -255,12 +278,15 @@ export function useSSE() {
               connectionWindow: prev.connectionWindow,
               scenarioActive: data.payload.scenario,
               backendConnected: true,
+              sseHealth: "connected",
             }));
             break;
           }
           case "ping":
             setState((prev) =>
-              prev.backendConnected ? prev : { ...prev, backendConnected: true }
+              prev.backendConnected
+                ? prev
+                : { ...prev, backendConnected: true, sseHealth: "connected" }
             );
             break;
         }
@@ -271,7 +297,11 @@ export function useSSE() {
 
     es.onerror = () => {
       es.close();
-      setState((prev) => ({ ...prev, backendConnected: false }));
+      setState((prev) => ({
+        ...prev,
+        backendConnected: false,
+        sseHealth: "reconnecting",
+      }));
       const delay = Math.min(1000 * Math.pow(2, reconnectRef.current), 10000);
       reconnectRef.current++;
       setTimeout(() => connect(), delay);
@@ -279,7 +309,11 @@ export function useSSE() {
 
     es.onopen = () => {
       reconnectRef.current = 0;
-      setState((prev) => ({ ...prev, backendConnected: true }));
+      setState((prev) => ({
+        ...prev,
+        backendConnected: true,
+        sseHealth: "connected",
+      }));
       void hydrateFromBackend(setState);
     };
   }, []);

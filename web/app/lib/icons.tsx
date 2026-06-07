@@ -22,5 +22,5 @@ const ICON_MAP: Record<string, React.ComponentType<{ size?: number; className?: 
 
 export function SignalIcon({ name, className, size = 24 }: { name: string; className?: string; size?: number }) {
   const Icon = ICON_MAP[name] || Activity;
-  return <Icon size={size} className={className || "text-primary"} />;
+  return <Icon size={size} className={className || "text-primary"} aria-hidden="true" />;
 }

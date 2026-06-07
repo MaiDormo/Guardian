@@ -14,7 +14,6 @@ const ROOM_ICONS: Record<string, LucideIcon> = {
   kitchen: CookingPot,
 };
 
-// 2x2 grid order matching the PRD §10.1 Abstract Zone Map sketch.
 const ROOMS = [
   { id: "bedroom", label: "Bedroom" },
   { id: "bathroom", label: "Bathroom" },
@@ -22,17 +21,23 @@ const ROOMS = [
   { id: "kitchen", label: "Kitchen" },
 ];
 
+function roomStatusLabel(occupied: boolean, isFall: boolean): string {
+  if (isFall) return "fall detected";
+  if (occupied) return "occupied";
+  return "empty";
+}
+
 export default function ZoneMap({ presence }: ZoneMapProps) {
   return (
     <section
       aria-label="Abstract zone map"
-      className="flex h-full flex-col gap-2 rounded-xl border border-border bg-card/60 p-3"
+      className="flex h-full flex-col gap-2 rounded-xl border border-border bg-surface-container-low p-3 shadow-panel"
     >
       <header className="flex items-center justify-between">
-        <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+        <h2 className="text-label-md uppercase text-muted-foreground">
           Abstract Zone Map
         </h2>
-        <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+        <span className="text-label-sm uppercase text-muted-foreground">
           mmWave presence
         </span>
       </header>
@@ -43,10 +48,12 @@ export default function ZoneMap({ presence }: ZoneMapProps) {
           const occupied = p?.occupied || false;
           const isFall = p?.fall || false;
           const Icon = ROOM_ICONS[room.id];
+          const status = roomStatusLabel(occupied, isFall);
 
           return (
             <div
               key={room.id}
+              aria-label={`${room.label}: ${status}`}
               className={`relative flex flex-col items-center justify-center gap-2 rounded-lg border bg-card/60 p-3 transition-colors duration-500 ${
                 isFall
                   ? "border-alert bg-alert/10"
@@ -56,6 +63,7 @@ export default function ZoneMap({ presence }: ZoneMapProps) {
               }`}
             >
               <span
+                aria-hidden="true"
                 className={`flex size-8 items-center justify-center rounded-full transition-all duration-500 ${
                   isFall
                     ? "bg-alert/30 animate-radar-pulse-red"
@@ -72,14 +80,15 @@ export default function ZoneMap({ presence }: ZoneMapProps) {
               </span>
               <div className="flex items-center gap-1.5">
                 <Icon className="size-3.5 text-muted-foreground" aria-hidden="true" />
-                <span className="text-xs font-medium text-card-foreground">{room.label}</span>
+                <span className="text-body-sm font-medium text-card-foreground">{room.label}</span>
               </div>
+              <span className="sr-only">{status}</span>
             </div>
           );
         })}
       </div>
 
-      <p className="text-center text-[10px] leading-tight text-muted-foreground">
+      <p className="text-center text-label-sm text-pretty text-muted-foreground">
         Auto-mapped from radar zones — no setup
       </p>
     </section>

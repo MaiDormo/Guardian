@@ -1,0 +1,430 @@
+{
+  "_meta": {
+    "description": "30-day normal voice baseline corpus \u2014 PRD \u00a75.3 schema",
+    "date_range": "2026-05-07..2026-06-05",
+    "owner": "Tanmay",
+    "anchor": "138/0.87/positive/false/1.2/142 from normal_morning.json"
+  },
+  "events": [
+    {
+      "event_type": "voice_checkin_completed",
+      "source": "voice_system",
+      "timestamp": "2026-05-07T10:05:00Z",
+      "confidence": 0.89,
+      "payload": {
+        "speech_rate_wpm": 130,
+        "clarity_score": 0.82,
+        "sentiment": "neutral",
+        "confusion_markers": false,
+        "response_latency_s": 1.0,
+        "duration_s": 140
+      }
+    },
+    {
+      "event_type": "voice_checkin_completed",
+      "source": "voice_system",
+      "timestamp": "2026-05-08T10:05:00Z",
+      "confidence": 0.9,
+      "payload": {
+        "speech_rate_wpm": 131,
+        "clarity_score": 0.83,
+        "sentiment": "positive",
+        "confusion_markers": false,
+        "response_latency_s": 1.1,
+        "duration_s": 141
+      }
+    },
+    {
+      "event_type": "voice_checkin_completed",
+      "source": "voice_system",
+      "timestamp": "2026-05-09T10:05:00Z",
+      "confidence": 0.91,
+      "payload": {
+        "speech_rate_wpm": 132,
+        "clarity_score": 0.84,
+        "sentiment": "positive",
+        "confusion_markers": false,
+        "response_latency_s": 1.2,
+        "duration_s": 142
+      }
+    },
+    {
+      "event_type": "voice_checkin_completed",
+      "source": "voice_system",
+      "timestamp": "2026-05-10T10:05:00Z",
+      "confidence": 0.89,
+      "payload": {
+        "speech_rate_wpm": 133,
+        "clarity_score": 0.85,
+        "sentiment": "positive",
+        "confusion_markers": false,
+        "response_latency_s": 1.3,
+        "duration_s": 143
+      }
+    },
+    {
+      "event_type": "voice_checkin_completed",
+      "source": "voice_system",
+      "timestamp": "2026-05-11T10:05:00Z",
+      "confidence": 0.9,
+      "payload": {
+        "speech_rate_wpm": 134,
+        "clarity_score": 0.86,
+        "sentiment": "positive",
+        "confusion_markers": false,
+        "response_latency_s": 1.4,
+        "duration_s": 144
+      }
+    },
+    {
+      "event_type": "voice_checkin_completed",
+      "source": "voice_system",
+      "timestamp": "2026-05-12T10:05:00Z",
+      "confidence": 0.91,
+      "payload": {
+        "speech_rate_wpm": 135,
+        "clarity_score": 0.87,
+        "sentiment": "neutral",
+        "confusion_markers": false,
+        "response_latency_s": 1.5,
+        "duration_s": 140
+      }
+    },
+    {
+      "event_type": "voice_checkin_completed",
+      "source": "voice_system",
+      "timestamp": "2026-05-13T10:05:00Z",
+      "confidence": 0.89,
+      "payload": {
+        "speech_rate_wpm": 136,
+        "clarity_score": 0.88,
+        "sentiment": "positive",
+        "confusion_markers": false,
+        "response_latency_s": 1.6,
+        "duration_s": 141
+      }
+    },
+    {
+      "event_type": "voice_checkin_completed",
+      "source": "voice_system",
+      "timestamp": "2026-05-14T10:05:00Z",
+      "confidence": 0.9,
+      "payload": {
+        "speech_rate_wpm": 137,
+        "clarity_score": 0.89,
+        "sentiment": "positive",
+        "confusion_markers": false,
+        "response_latency_s": 1.0,
+        "duration_s": 142
+      }
+    },
+    {
+      "event_type": "voice_checkin_completed",
+      "source": "voice_system",
+      "timestamp": "2026-05-15T10:05:00Z",
+      "confidence": 0.91,
+      "payload": {
+        "speech_rate_wpm": 138,
+        "clarity_score": 0.9,
+        "sentiment": "positive",
+        "confusion_markers": false,
+        "response_latency_s": 1.1,
+        "duration_s": 143
+      }
+    },
+    {
+      "event_type": "voice_checkin_completed",
+      "source": "voice_system",
+      "timestamp": "2026-05-16T10:05:00Z",
+      "confidence": 0.89,
+      "payload": {
+        "speech_rate_wpm": 139,
+        "clarity_score": 0.82,
+        "sentiment": "positive",
+        "confusion_markers": false,
+        "response_latency_s": 1.2,
+        "duration_s": 144
+      }
+    },
+    {
+      "event_type": "voice_checkin_completed",
+      "source": "voice_system",
+      "timestamp": "2026-05-17T10:05:00Z",
+      "confidence": 0.9,
+      "payload": {
+        "speech_rate_wpm": 140,
+        "clarity_score": 0.83,
+        "sentiment": "neutral",
+        "confusion_markers": false,
+        "response_latency_s": 1.3,
+        "duration_s": 140
+      }
+    },
+    {
+      "event_type": "voice_checkin_completed",
+      "source": "voice_system",
+      "timestamp": "2026-05-18T10:05:00Z",
+      "confidence": 0.91,
+      "payload": {
+        "speech_rate_wpm": 141,
+        "clarity_score": 0.84,
+        "sentiment": "positive",
+        "confusion_markers": false,
+        "response_latency_s": 1.4,
+        "duration_s": 141
+      }
+    },
+    {
+      "event_type": "voice_checkin_completed",
+      "source": "voice_system",
+      "timestamp": "2026-05-19T10:05:00Z",
+      "confidence": 0.89,
+      "payload": {
+        "speech_rate_wpm": 142,
+        "clarity_score": 0.85,
+        "sentiment": "positive",
+        "confusion_markers": false,
+        "response_latency_s": 1.5,
+        "duration_s": 142
+      }
+    },
+    {
+      "event_type": "voice_checkin_completed",
+      "source": "voice_system",
+      "timestamp": "2026-05-20T10:05:00Z",
+      "confidence": 0.9,
+      "payload": {
+        "speech_rate_wpm": 143,
+        "clarity_score": 0.86,
+        "sentiment": "positive",
+        "confusion_markers": false,
+        "response_latency_s": 1.6,
+        "duration_s": 143
+      }
+    },
+    {
+      "event_type": "voice_checkin_completed",
+      "source": "voice_system",
+      "timestamp": "2026-05-21T10:05:00Z",
+      "confidence": 0.91,
+      "payload": {
+        "speech_rate_wpm": 144,
+        "clarity_score": 0.87,
+        "sentiment": "positive",
+        "confusion_markers": false,
+        "response_latency_s": 1.0,
+        "duration_s": 144
+      }
+    },
+    {
+      "event_type": "voice_checkin_completed",
+      "source": "voice_system",
+      "timestamp": "2026-05-22T10:05:00Z",
+      "confidence": 0.89,
+      "payload": {
+        "speech_rate_wpm": 145,
+        "clarity_score": 0.88,
+        "sentiment": "neutral",
+        "confusion_markers": false,
+        "response_latency_s": 1.1,
+        "duration_s": 140
+      }
+    },
+    {
+      "event_type": "voice_checkin_completed",
+      "source": "voice_system",
+      "timestamp": "2026-05-23T10:05:00Z",
+      "confidence": 0.9,
+      "payload": {
+        "speech_rate_wpm": 130,
+        "clarity_score": 0.89,
+        "sentiment": "positive",
+        "confusion_markers": false,
+        "response_latency_s": 1.2,
+        "duration_s": 141
+      }
+    },
+    {
+      "event_type": "voice_checkin_completed",
+      "source": "voice_system",
+      "timestamp": "2026-05-24T10:05:00Z",
+      "confidence": 0.91,
+      "payload": {
+        "speech_rate_wpm": 131,
+        "clarity_score": 0.9,
+        "sentiment": "positive",
+        "confusion_markers": false,
+        "response_latency_s": 1.3,
+        "duration_s": 142
+      }
+    },
+    {
+      "event_type": "voice_checkin_completed",
+      "source": "voice_system",
+      "timestamp": "2026-05-25T10:05:00Z",
+      "confidence": 0.89,
+      "payload": {
+        "speech_rate_wpm": 132,
+        "clarity_score": 0.82,
+        "sentiment": "positive",
+        "confusion_markers": false,
+        "response_latency_s": 1.4,
+        "duration_s": 143
+      }
+    },
+    {
+      "event_type": "voice_checkin_completed",
+      "source": "voice_system",
+      "timestamp": "2026-05-26T10:05:00Z",
+      "confidence": 0.9,
+      "payload": {
+        "speech_rate_wpm": 133,
+        "clarity_score": 0.83,
+        "sentiment": "positive",
+        "confusion_markers": false,
+        "response_latency_s": 1.5,
+        "duration_s": 144
+      }
+    },
+    {
+      "event_type": "voice_checkin_completed",
+      "source": "voice_system",
+      "timestamp": "2026-05-27T10:05:00Z",
+      "confidence": 0.91,
+      "payload": {
+        "speech_rate_wpm": 134,
+        "clarity_score": 0.84,
+        "sentiment": "neutral",
+        "confusion_markers": false,
+        "response_latency_s": 1.6,
+        "duration_s": 140
+      }
+    },
+    {
+      "event_type": "voice_checkin_completed",
+      "source": "voice_system",
+      "timestamp": "2026-05-28T10:05:00Z",
+      "confidence": 0.89,
+      "payload": {
+        "speech_rate_wpm": 135,
+        "clarity_score": 0.85,
+        "sentiment": "positive",
+        "confusion_markers": false,
+        "response_latency_s": 1.0,
+        "duration_s": 141
+      }
+    },
+    {
+      "event_type": "voice_checkin_completed",
+      "source": "voice_system",
+      "timestamp": "2026-05-29T10:05:00Z",
+      "confidence": 0.9,
+      "payload": {
+        "speech_rate_wpm": 136,
+        "clarity_score": 0.86,
+        "sentiment": "positive",
+        "confusion_markers": false,
+        "response_latency_s": 1.1,
+        "duration_s": 142
+      }
+    },
+    {
+      "event_type": "voice_checkin_completed",
+      "source": "voice_system",
+      "timestamp": "2026-05-30T10:05:00Z",
+      "confidence": 0.91,
+      "payload": {
+        "speech_rate_wpm": 137,
+        "clarity_score": 0.87,
+        "sentiment": "positive",
+        "confusion_markers": false,
+        "response_latency_s": 1.2,
+        "duration_s": 143
+      }
+    },
+    {
+      "event_type": "voice_checkin_completed",
+      "source": "voice_system",
+      "timestamp": "2026-05-31T10:05:00Z",
+      "confidence": 0.89,
+      "payload": {
+        "speech_rate_wpm": 138,
+        "clarity_score": 0.88,
+        "sentiment": "positive",
+        "confusion_markers": false,
+        "response_latency_s": 1.3,
+        "duration_s": 144
+      }
+    },
+    {
+      "event_type": "voice_checkin_completed",
+      "source": "voice_system",
+      "timestamp": "2026-06-01T10:05:00Z",
+      "confidence": 0.9,
+      "payload": {
+        "speech_rate_wpm": 139,
+        "clarity_score": 0.89,
+        "sentiment": "neutral",
+        "confusion_markers": false,
+        "response_latency_s": 1.4,
+        "duration_s": 140
+      }
+    },
+    {
+      "event_type": "voice_checkin_completed",
+      "source": "voice_system",
+      "timestamp": "2026-06-02T10:05:00Z",
+      "confidence": 0.91,
+      "payload": {
+        "speech_rate_wpm": 140,
+        "clarity_score": 0.9,
+        "sentiment": "positive",
+        "confusion_markers": false,
+        "response_latency_s": 1.5,
+        "duration_s": 141
+      }
+    },
+    {
+      "event_type": "voice_checkin_completed",
+      "source": "voice_system",
+      "timestamp": "2026-06-03T10:05:00Z",
+      "confidence": 0.89,
+      "payload": {
+        "speech_rate_wpm": 141,
+        "clarity_score": 0.82,
+        "sentiment": "positive",
+        "confusion_markers": false,
+        "response_latency_s": 1.6,
+        "duration_s": 142
+      }
+    },
+    {
+      "event_type": "voice_checkin_completed",
+      "source": "voice_system",
+      "timestamp": "2026-06-04T10:05:00Z",
+      "confidence": 0.9,
+      "payload": {
+        "speech_rate_wpm": 142,
+        "clarity_score": 0.83,
+        "sentiment": "positive",
+        "confusion_markers": false,
+        "response_latency_s": 1.0,
+        "duration_s": 143
+      }
+    },
+    {
+      "event_type": "voice_checkin_completed",
+      "source": "voice_system",
+      "timestamp": "2026-06-05T10:05:00Z",
+      "confidence": 0.91,
+      "payload": {
+        "speech_rate_wpm": 143,
+        "clarity_score": 0.84,
+        "sentiment": "positive",
+        "confusion_markers": false,
+        "response_latency_s": 1.1,
+        "duration_s": 144
+      }
+    }
+  ]
+}

@@ -20,16 +20,18 @@ export default function LocationMap({ location, wandering }: LocationMapProps) {
   return (
     <section
       aria-label="GBA trajectory map"
-      className="flex h-full flex-col gap-2 rounded-xl border border-border bg-card/60 p-3"
+      className="flex h-full flex-col gap-2 rounded-xl border border-border bg-surface-container-low p-3 shadow-panel"
     >
       <header className="flex items-center justify-between">
-        <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+        <h2 className="text-label-md uppercase text-muted-foreground">
           GBA Trajectory Map
         </h2>
         <span
-          className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+          className={`rounded px-1.5 py-0.5 text-label-sm font-semibold uppercase ${
             isWandering ? "bg-alert/20 text-alert" : "bg-ok/15 text-ok"
           }`}
+          role="status"
+          aria-live="polite"
         >
           {isWandering ? "Wandering" : "In footprint"}
         </span>
@@ -61,7 +63,6 @@ export default function LocationMap({ location, wandering }: LocationMapProps) {
 
           <rect width="400" height="300" fill="url(#loc-grid)" />
 
-          {/* Normal footprint — hand-drawn route, neutral/green */}
           <g className={`transition-opacity duration-700 ${isWandering ? "opacity-25" : "opacity-100"}`}>
             <path
               d="M170 160 Q110 95 45 35 Q-10 110 30 185 Q90 230 170 160 Z"
@@ -74,7 +75,6 @@ export default function LocationMap({ location, wandering }: LocationMapProps) {
             />
           </g>
 
-          {/* Anomalous trace — pre-baked red wandering path, revealed on event */}
           <g className={`transition-opacity duration-700 ${isWandering ? "opacity-100 animate-pulse" : "opacity-0"}`}>
             <path
               d="M170 160 Q230 100 300 70 Q350 90 340 180 Q320 260 280 220"
@@ -89,7 +89,6 @@ export default function LocationMap({ location, wandering }: LocationMapProps) {
             <circle cx="300" cy="70" r="3.5" fill="#ba1a1a" opacity="0.6" />
           </g>
 
-          {/* Named nodes */}
           {NODES.map((n) => (
             <g key={n.id}>
               <circle
@@ -103,7 +102,7 @@ export default function LocationMap({ location, wandering }: LocationMapProps) {
                 x={n.x}
                 y={n.y - 11}
                 textAnchor="middle"
-                fontSize="9"
+                fontSize="10"
                 fill="#6d7a72"
                 fontFamily="ui-monospace, monospace"
               >
@@ -114,18 +113,21 @@ export default function LocationMap({ location, wandering }: LocationMapProps) {
         </svg>
 
         {wandering && (
-          <div className="absolute bottom-3 left-3 rounded-lg bg-alert/90 px-3 py-1.5 shadow-sm backdrop-blur-sm">
-            <p className="text-[11px] font-bold text-alert-foreground">
+          <div className="absolute bottom-3 left-3 rounded-lg bg-alert/90 px-3 py-1.5 shadow-sm">
+            <p className="text-label-sm font-bold text-alert-foreground">
               {wandering.minutes_outside_baseline_footprint} min outside
             </p>
-            <p className="text-[9px] text-alert-foreground/80">
-              density {wandering.trajectory_density_score.toFixed(2)}
+            <p className="text-label-sm text-alert-foreground/80">
+              density{" "}
+              <span className="tabular-nums">
+                {wandering.trajectory_density_score.toFixed(2)}
+              </span>
             </p>
           </div>
         )}
       </div>
 
-      <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+      <div className="flex items-center justify-between text-label-sm tabular-nums text-muted-foreground">
         <span className="font-mono">
           density {location ? location.trajectory_density_score.toFixed(2) : "—"}
         </span>
