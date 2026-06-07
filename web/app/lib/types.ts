@@ -39,6 +39,7 @@ export interface WanderingPayload {
   trajectory_density_score: number;
   baseline_cluster_match: boolean;
   minutes_outside_baseline_footprint: number;
+  trace?: [number, number][];
   updated_at: string;
 }
 
@@ -62,6 +63,7 @@ export interface LocationUpdatePayload {
   trajectory_density_score: number;
   baseline_cluster_match: boolean;
   distance_from_home_m: number;
+  trace?: [number, number][];
   updated_at: string;
 }
 
@@ -94,6 +96,18 @@ export interface ConnectionAckPayload {
   rationale: string;
   message_preview: string;
   updated_at: string;
+}
+
+export type Tab = "home" | "timeline" | "sensors" | "profile";
+
+export type ToastType = "scenario" | "intervention" | "fall" | "connection" | "info";
+
+export interface ToastEvent {
+  id: string;
+  type: ToastType;
+  title: string;
+  message: string;
+  timestamp: number;
 }
 
 export type SSEEvent =
