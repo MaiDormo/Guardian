@@ -43,6 +43,9 @@ WECOM_WEBHOOK_URL = os.getenv("WECOM_WEBHOOK_URL", "")
 WHATSAPP_TOKEN = os.getenv("WHATSAPP_TOKEN", "")
 WHATSAPP_PHONE_ID = os.getenv("WHATSAPP_PHONE_ID", "")
 CAREGIVER_PHONE = os.getenv("CAREGIVER_PHONE", "+85200000000")
+AUTO_DISPATCH_ON_FALL = os.getenv("AUTO_DISPATCH_ON_FALL", "true").lower() in (
+    "1", "true", "yes",
+)
 
 # ---------------------------------------------------------------------------
 # Optional integration with Tanmay's modules
@@ -405,6 +408,33 @@ def _reset_state() -> None:
 # Core ingest + broadcast pipeline
 # ---------------------------------------------------------------------------
 
+async def _auto_dispatch_fall(event: dict) -> None:
+    """Safety-reflex tier: auto-notify caregivers when a fall is detected."""
+    if not AUTO_DISPATCH_ON_FALL:
+        return
+
+    room = event.get("room") or "bathroom"
+    payload = event.get("payload") or {}
+    posture = payload.get("posture", "unknown")
+    stationary_s = payload.get("stationary_s", 0)
+    now = _ts()
+    message = (
+        f"🚨 Guardian FALL ALERT · Ah-Ma · {room} · "
+        f"{posture} · {stationary_s}s stationary · auto-dispatched · {now[:16].replace('T', ' ')} UTC"
+    )
+    channel = await _dispatch_alert(message)
+    await _broadcast({
+        "event": "intervention_ack",
+        "payload": {
+            "dispatched": True,
+            "channel": channel,
+            "message_preview": message,
+            "updated_at": now,
+        },
+    })
+    log.info("Fall auto-dispatch complete (channel=%s)", channel)
+
+
 async def _ingest_and_broadcast(event: dict) -> None:
     global fall_active
     if HAS_TANMAY:
@@ -416,6 +446,7 @@ async def _ingest_and_broadcast(event: dict) -> None:
     else:
         sse_events = await _process_event_inplace(event)
 
+    had_fall = False
     for sse_evt in sse_events:
         # Keep signal_state in sync regardless of which code path produced the events.
         # Without this, HAS_TANMAY=True bypasses _make_signal_sse, leaving signal_state
@@ -432,7 +463,11 @@ async def _ingest_and_broadcast(event: dict) -> None:
                 }
         elif sse_evt.get("event") == "fall_detected":
             fall_active = True
+            had_fall = True
         await _broadcast(sse_evt)
+
+    if had_fall:
+        await _auto_dispatch_fall(event)
 
     # Optionally trigger agent reasoning (non-blocking)
     if HAS_AGENT and _agent and event.get("event_type") not in ("fall_detected",):

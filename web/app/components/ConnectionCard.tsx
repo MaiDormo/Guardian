@@ -1,22 +1,65 @@
 "use client";
 
 import { useState } from "react";
-import { PhoneCall, Check, ChevronDown, ChevronUp } from "lucide-react";
+import { PhoneCall, Check, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import type { ConnectionAckPayload, ConnectionWindowPayload } from "../lib/types";
 import { apiUrl } from "../lib/api";
 
 interface ConnectionCardProps {
   window: ConnectionWindowPayload | null;
   connectionAck: ConnectionAckPayload | null;
+  loading?: boolean;
 }
 
-export default function ConnectionCard({ window: w, connectionAck }: ConnectionCardProps) {
+function ConnectionCardSkeleton() {
+  return (
+    <section
+      aria-label="Optimal connection window"
+      aria-busy="true"
+      className="flex flex-col gap-3 rounded-xl border border-primary/25 bg-surface-container-low p-3 shadow-panel"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 space-y-2">
+          <div className="h-3 w-40 animate-pulse rounded bg-muted" />
+          <div className="h-8 w-32 animate-pulse rounded bg-muted" />
+        </div>
+        <Loader2 className="size-4 shrink-0 animate-spin text-muted-foreground" aria-hidden="true" />
+      </div>
+      <div className="h-4 w-full animate-pulse rounded bg-muted" />
+      <p className="text-body-sm text-muted-foreground">Computing optimal call window…</p>
+    </section>
+  );
+}
+
+function ConnectionCardEmpty() {
+  return (
+    <section
+      aria-label="Optimal connection window"
+      className="flex flex-col gap-2 rounded-xl border border-border bg-surface-container-low p-3 shadow-panel"
+    >
+      <h2 className="text-label-md uppercase text-muted-foreground">
+        Optimal Connection Window
+      </h2>
+      <p className="text-pretty text-body-sm text-muted-foreground">
+        Run <strong className="font-semibold text-card-foreground">Normal Morning</strong> to
+        load Ah-Ma&apos;s afternoon call window from the 14-day baseline.
+      </p>
+    </section>
+  );
+}
+
+export default function ConnectionCard({
+  window: w,
+  connectionAck,
+  loading = false,
+}: ConnectionCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [nudged, setNudged] = useState(false);
   const [sending, setSending] = useState(false);
   const rationaleId = "connection-rationale";
 
-  if (!w) return null;
+  if (loading && !w) return <ConnectionCardSkeleton />;
+  if (!w) return <ConnectionCardEmpty />;
 
   const clarityPct = w.evidence?.avg_clarity != null
     ? (w.evidence.avg_clarity * 100).toFixed(0)

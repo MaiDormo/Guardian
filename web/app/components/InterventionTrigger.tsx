@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Siren, Check, X } from "lucide-react";
+import { Siren, Check, X, Loader2 } from "lucide-react";
 import type { InterventionAckPayload } from "../lib/types";
 import { dispatchIntervention } from "../lib/intervention";
 
@@ -10,6 +10,7 @@ interface InterventionTriggerProps {
   scenarioActive: string | null;
   onDispatch?: () => void;
   dispatching?: boolean;
+  className?: string;
 }
 
 export default function InterventionTrigger({
@@ -17,6 +18,7 @@ export default function InterventionTrigger({
   scenarioActive,
   onDispatch,
   dispatching: externalDispatching,
+  className = "hidden lg:flex",
 }: InterventionTriggerProps) {
   const [internalSpinning, setInternalSpinning] = useState(false);
   const [showOverlay, setShowOverlay] = useState(false);
@@ -35,6 +37,7 @@ export default function InterventionTrigger({
   }, [interventionAck]);
 
   const handleDispatch = async () => {
+    setShowOverlay(true);
     if (onDispatch) {
       await onDispatch();
       return;
@@ -49,7 +52,7 @@ export default function InterventionTrigger({
   };
 
   return (
-    <section aria-label="Emergency dispatch" className="hidden flex-col gap-2 lg:flex">
+    <section aria-label="Emergency dispatch" className={`flex-col gap-2 ${className}`}>
       <button
         type="button"
         onClick={handleDispatch}
@@ -71,34 +74,48 @@ export default function InterventionTrigger({
         </p>
       )}
 
-      {showOverlay && interventionAck && (
+      {showOverlay && (
         <div
           role="status"
           aria-live="polite"
           className="slide-up flex items-start gap-3 rounded-xl border border-ok/50 bg-ok/10 p-3"
         >
-          <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-on-primary">
-            <Check className="size-4" aria-hidden="true" />
-          </span>
+          {spinning ? (
+            <Loader2 className="mt-0.5 size-6 shrink-0 animate-spin text-primary" aria-hidden="true" />
+          ) : (
+            <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-on-primary">
+              <Check className="size-4" aria-hidden="true" />
+            </span>
+          )}
           <div className="flex-1">
             <p className="text-body-sm font-semibold text-card-foreground">
-              Alert dispatched — Shenzhen Care Network notified
+              {spinning
+                ? "Dispatching alert…"
+                : "Alert dispatched — Shenzhen Care Network notified"}
             </p>
-            <p className="mt-1 font-mono text-label-sm leading-snug text-muted-foreground">
-              {interventionAck.message_preview}
-            </p>
-            <p className="mt-1 text-label-sm uppercase text-muted-foreground">
-              via {interventionAck.channel}
-            </p>
+            {!spinning && (
+              <>
+                <p className="mt-1 font-mono text-label-sm leading-snug text-muted-foreground">
+                  {interventionAck?.message_preview ?? "Awaiting confirmation from care network"}
+                </p>
+                {interventionAck?.channel && (
+                  <p className="mt-1 text-label-sm uppercase text-muted-foreground">
+                    via {interventionAck.channel}
+                  </p>
+                )}
+              </>
+            )}
           </div>
-          <button
-            type="button"
-            onClick={() => setShowOverlay(false)}
-            aria-label="Dismiss confirmation"
-            className="text-muted-foreground transition-colors hover:text-card-foreground"
-          >
-            <X className="size-4" aria-hidden="true" />
-          </button>
+          {!spinning && (
+            <button
+              type="button"
+              onClick={() => setShowOverlay(false)}
+              aria-label="Dismiss confirmation"
+              className="text-muted-foreground transition-colors hover:text-card-foreground"
+            >
+              <X className="size-4" aria-hidden="true" />
+            </button>
+          )}
         </div>
       )}
     </section>

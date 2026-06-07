@@ -8,6 +8,7 @@ interface FabProps {
   dispatching: boolean;
   dispatched: boolean;
   interventionAck: InterventionAckPayload | null;
+  visible?: boolean;
 }
 
 export default function Fab({
@@ -15,8 +16,11 @@ export default function Fab({
   dispatching,
   dispatched,
   interventionAck,
+  visible = true,
 }: FabProps) {
   const showAck = dispatched || interventionAck !== null;
+
+  if (!visible && !showAck) return null;
 
   return (
     <>

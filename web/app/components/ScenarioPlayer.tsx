@@ -6,7 +6,7 @@ import { runScenario } from "../lib/scenario";
 const SCENARIOS = [
   { name: "normal", label: "Normal Morning" },
   { name: "trend_7day", label: "7-Day Trend" },
-  { name: "fall", label: "Fall", danger: true },
+  { name: "fall", label: "Fall Override", danger: true },
 ];
 
 interface ScenarioPlayerProps {

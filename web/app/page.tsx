@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Header from "./components/Header";
 import FallBanner from "./components/FallBanner";
 import ZoneMap from "./components/ZoneMap";
@@ -14,6 +14,7 @@ import Fab from "./components/Fab";
 import BottomNav from "./components/BottomNav";
 import { useSSE } from "./lib/useSSE";
 import { dispatchIntervention } from "./lib/intervention";
+import { playFallAlert } from "./lib/fallAlert";
 
 export default function Home() {
   const sse = useSSE();
@@ -42,6 +43,26 @@ export default function Home() {
   }, []);
 
   const showFall = sse.fall !== null && !fallDismissed;
+  const connectionLoading =
+    sse.connectionWindowLoading ||
+    (sse.sseHealth === "reconnecting" && !sse.connectionWindow);
+  const interventionAvailable =
+    sse.interventionAck !== null ||
+    sse.scenarioActive === "trend_7day" ||
+    sse.signals.voice_checkin?.state === "red" ||
+    sse.signals.location?.state === "red";
+
+  useEffect(() => {
+    if (sse.fall && sse.interventionAck) {
+      setFabDispatched(true);
+    }
+  }, [sse.fall, sse.interventionAck]);
+
+  useEffect(() => {
+    if (sse.fall && !fallDismissed) {
+      playFallAlert();
+    }
+  }, [sse.fall, fallDismissed]);
 
   return (
     <main
@@ -56,12 +77,20 @@ export default function Home() {
       />
 
       {showFall && (
-        <FallBanner fall={sse.fall} onDismiss={handleDismissFall} />
+        <FallBanner
+          fall={sse.fall}
+          onDismiss={handleDismissFall}
+          autoDispatched={sse.interventionAck !== null}
+        />
       )}
 
       {/* Mobile stack — desktop uses 3-column grid below */}
       <div className="flex flex-col gap-3 lg:hidden">
-        <ConnectionCard window={sse.connectionWindow} connectionAck={sse.connectionAck} />
+        <ConnectionCard
+          window={sse.connectionWindow}
+          connectionAck={sse.connectionAck}
+          loading={connectionLoading}
+        />
         <div className="min-h-[280px]">
           <SignalGrid signals={sse.signals} reasoning={sse.reasoning} />
         </div>
@@ -81,6 +110,13 @@ export default function Home() {
             sseHealth={sse.sseHealth}
           />
         </div>
+        <InterventionTrigger
+          interventionAck={sse.interventionAck}
+          scenarioActive={sse.scenarioActive}
+          onDispatch={handleFabDispatch}
+          dispatching={dispatching}
+          className="flex lg:hidden"
+        />
         <ScenarioPlayer
           onScenarioStart={handleScenarioStart}
           loading={scenarioLoading}
@@ -100,7 +136,11 @@ export default function Home() {
         </div>
 
         <div className="flex min-h-0 flex-col gap-3 lg:col-span-6">
-          <ConnectionCard window={sse.connectionWindow} connectionAck={sse.connectionAck} />
+          <ConnectionCard
+          window={sse.connectionWindow}
+          connectionAck={sse.connectionAck}
+          loading={connectionLoading}
+        />
           <div className="flex min-h-0 flex-1 flex-col">
             <SignalGrid signals={sse.signals} reasoning={sse.reasoning} />
           </div>
@@ -132,6 +172,7 @@ export default function Home() {
         dispatching={dispatching}
         dispatched={fabDispatched}
         interventionAck={sse.interventionAck}
+        visible={interventionAvailable}
       />
       <BottomNav />
     </main>

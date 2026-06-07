@@ -277,3 +277,28 @@ async def test_intervention_message_preview_contains_location(client):
     r = await client.post("/trigger/intervention",
                           json={"location": "Shenzhen"})
     assert "Shenzhen" in r.json()["message_preview"]
+
+
+async def test_fall_scenario_auto_dispatches_alert(client, monkeypatch):
+    """Safety-reflex: fall_detected must auto-dispatch without manual trigger."""
+    import asyncio
+    import main
+
+    dispatched: list[str] = []
+
+    async def fake_dispatch(message: str) -> str:
+        dispatched.append(message)
+        return "overlay_only"
+
+    monkeypatch.setattr(main, "_dispatch_alert", fake_dispatch)
+    monkeypatch.setattr(main, "AUTO_DISPATCH_ON_FALL", True)
+
+    r = await client.post("/scenario/fall")
+    assert r.status_code == 200
+
+    if main._scenario_task:
+        await main._scenario_task
+
+    assert len(dispatched) == 1
+    assert "FALL ALERT" in dispatched[0]
+    assert "bathroom" in dispatched[0]

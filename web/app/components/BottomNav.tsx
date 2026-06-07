@@ -22,6 +22,7 @@ export default function BottomNav() {
             key={item.label}
             type="button"
             disabled={item.disabled}
+            tabIndex={item.disabled ? -1 : 0}
             aria-label={item.disabled ? `${item.label} (coming soon)` : item.label}
             aria-current={item.active ? "page" : undefined}
             className={`flex flex-col items-center justify-center px-4 py-1 transition-transform duration-200 active:scale-90 disabled:cursor-not-allowed disabled:opacity-40 ${

@@ -8,10 +8,13 @@ a per-process monotonic counter. This ensures same-second identical replays
 (e.g. two cosine_update 0.04 events in trend_7day) never collide on the dedup
 key, while literal double-POSTs of the exact same in-memory event do collide
 (same seq, same timestamp). Only true duplicates are dropped.
+
+Set DEDUP_TEST_MODE=true to append a UUID (for persistent test DBs across runs).
 """
 
 import hashlib
 import json
+import os
 import threading
 import uuid
 from datetime import datetime, timezone
@@ -19,6 +22,8 @@ from typing import Optional
 
 _seq_lock = threading.Lock()
 _seq_counter: int = 0
+
+_DEDUP_TEST_MODE = os.getenv("DEDUP_TEST_MODE", "false").lower() in ("1", "true", "yes")
 
 
 def normalize(event: dict) -> dict:
@@ -57,15 +62,12 @@ def _make_dedup_key(
     payload: dict,
     seq: int,
 ) -> str:
-    # Include a per-call UUID so dedup_key is globally unique even when the
-    # per-process seq counter resets across restarts (e.g. across test sessions)
-    # while the SQLite DB persists. Dedup therefore targets literal double-POSTs
-    # of the exact same in-memory dict object within one process, not cross-run.
-    unique = uuid.uuid4().hex
     raw = (
         f"{event_type}|{source}|{room}|{timestamp}"
-        f"|{json.dumps(payload, sort_keys=True)}|{seq}|{unique}"
+        f"|{json.dumps(payload, sort_keys=True)}|{seq}"
     )
+    if _DEDUP_TEST_MODE:
+        raw += f"|{uuid.uuid4().hex}"
     return hashlib.sha1(raw.encode()).hexdigest()
 
 

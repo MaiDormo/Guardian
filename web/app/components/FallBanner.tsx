@@ -6,9 +6,10 @@ import type { FallPayload } from "../lib/types";
 interface FallBannerProps {
   fall: FallPayload | null;
   onDismiss: () => void;
+  autoDispatched?: boolean;
 }
 
-export default function FallBanner({ fall, onDismiss }: FallBannerProps) {
+export default function FallBanner({ fall, onDismiss, autoDispatched = false }: FallBannerProps) {
   if (!fall) return null;
 
   const roomLabel = fall.room.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
@@ -26,6 +27,11 @@ export default function FallBanner({ fall, onDismiss }: FallBannerProps) {
               {roomLabel} · {fall.posture} · {fall.stationary_s}s stationary ·{" "}
               {(fall.confidence * 100).toFixed(0)}% confidence
             </p>
+            {autoDispatched && (
+              <p className="mt-1 text-label-sm font-semibold text-ok">
+                Emergency alert auto-dispatched to care network
+              </p>
+            )}
           </div>
         </div>
         <button

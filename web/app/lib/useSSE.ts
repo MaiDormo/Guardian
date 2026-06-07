@@ -27,31 +27,12 @@ export interface SSEState {
   reasoning: ReasoningPayload[];
   interventionAck: InterventionAckPayload | null;
   connectionWindow: ConnectionWindowPayload | null;
+  connectionWindowLoading: boolean;
   connectionAck: ConnectionAckPayload | null;
   location: LocationUpdatePayload | null;
   scenarioActive: string | null;
   backendConnected: boolean;
   sseHealth: SSEHealth;
-}
-
-function demoConnectionWindow(): ConnectionWindowPayload {
-  const now = new Date().toISOString();
-  return {
-    best_window: "15:00-16:00",
-    best_hour: 15,
-    overlap_with_child: true,
-    confidence: "high",
-    evidence: {
-      presence_days: 12,
-      baseline_days: 14,
-      avg_clarity: 0.88,
-      positivity_rate: 0.8,
-    },
-    rationale:
-      "Ah-Ma is consistently present and calm between 15:00-16:00. " +
-      "Voice clarity peaks in the early afternoon. Tanmay is free at this time.",
-    updated_at: now,
-  };
 }
 
 /** Honest empty state — used after scenario resets. */
@@ -64,6 +45,7 @@ function createEmptyState(): SSEState {
     reasoning: [],
     interventionAck: null,
     connectionWindow: null,
+    connectionWindowLoading: false,
     connectionAck: null,
     location: null,
     scenarioActive: null,
@@ -72,47 +54,12 @@ function createEmptyState(): SSEState {
   };
 }
 
-/** Polished demo placeholder before the backend connects. */
-function createDemoState(): SSEState {
-  const signals = emptySignalState() as Record<string, SignalStateData>;
-  const now = new Date().toISOString();
-
-  for (const name of SIGNAL_NAMES) {
-    signals[name] = {
-      signal: name,
-      state: "green" as SignalState,
-      reason: "",
-      cosine_distance: 0.15,
-      updated_at: now,
-    };
-  }
-  signals.woke_up = { ...signals.woke_up, reason: "07:15" };
-  signals.ate = { ...signals.ate, reason: "Breakfast at 08:00" };
-  signals.took_meds = { ...signals.took_meds, reason: "Morning 3/3" };
-  signals.rested_well = { ...signals.rested_well, reason: "7.5h sleep" };
-  signals.helper_present = { ...signals.helper_present, reason: "Helper on site 08-10" };
-  signals.voice_checkin = { ...signals.voice_checkin, reason: "Clear check-in at 08:30" };
-  signals.location = { ...signals.location, reason: "Home area" };
-  signals.routine = { ...signals.routine, reason: "On track" };
-
+/** Initial state while SSE connects — no fake green signals. */
+function createConnectingState(): SSEState {
   return {
-    signals,
-    presence: {},
-    wandering: null,
-    fall: null,
-    reasoning: [],
-    interventionAck: null,
-    connectionWindow: demoConnectionWindow(),
-    connectionAck: null,
-    location: {
-      trajectory_density_score: 0.91,
-      baseline_cluster_match: true,
-      distance_from_home_m: 0,
-      updated_at: now,
-    },
-    scenarioActive: null,
-    backendConnected: false,
+    ...createEmptyState(),
     sseHealth: "reconnecting",
+    connectionWindowLoading: true,
   };
 }
 
@@ -137,6 +84,7 @@ async function hydrateFromBackend(
   setState: Dispatch<SetStateAction<SSEState>>
 ): Promise<void> {
   const base = apiUrl();
+  setState((prev) => ({ ...prev, connectionWindowLoading: true }));
   try {
     const [statusRes, connectionRes] = await Promise.all([
       fetch(`${base}/status`),
@@ -152,6 +100,7 @@ async function hydrateFromBackend(
       ...prev,
       backendConnected: true,
       sseHealth: "connected",
+      connectionWindowLoading: false,
       signals: status.signals ? signalsFromStatus(status.signals) : prev.signals,
       connectionWindow:
         connection?.best_window ? connection : prev.connectionWindow,
@@ -159,13 +108,14 @@ async function hydrateFromBackend(
   } catch {
     setState((prev) => ({
       ...prev,
+      connectionWindowLoading: false,
       sseHealth: prev.sseHealth === "connected" ? "connected" : "disconnected",
     }));
   }
 }
 
 export function useSSE() {
-  const [state, setState] = useState<SSEState>(createDemoState);
+  const [state, setState] = useState<SSEState>(createConnectingState);
   const esRef = useRef<EventSource | null>(null);
   const reconnectRef = useRef(0);
 
@@ -260,6 +210,7 @@ export function useSSE() {
               backendConnected: true,
               sseHealth: "connected",
               connectionWindow: data.payload,
+              connectionWindowLoading: false,
             }));
             break;
           }
@@ -320,7 +271,6 @@ export function useSSE() {
 
   useEffect(() => {
     connect();
-    void hydrateFromBackend(setState);
 
     return () => {
       if (esRef.current) {
