@@ -142,44 +142,7 @@ pytest -v
 | Deployment | Docker Compose |
 
 ---
-## Diagram
-graph LR
-    %% Definición de Estilos
-    classDef source fill:#1f2937,stroke:#3b82f6,stroke-width:2px,color:#fff;
-    classDef router fill:#1e3a8a,stroke:#3b82f6,stroke-width:2px,color:#fff;
-    classDef storage fill:#111827,stroke:#10b981,stroke-width:2px,color:#fff;
-    classDef logic fill:#111827,stroke:#f59e0b,stroke-width:2px,color:#fff;
-    classDef llm fill:#312e81,stroke:#8b5cf6,stroke-width:2px,color:#fff;
-    classDef stream fill:#111827,stroke:#ec4899,stroke-width:2px,color:#fff;
-    classDef ui fill:#0f172a,stroke:#06b6d4,stroke-width:2px,color:#fff;
 
-    %% Nodos del Flujo
-    RADAR[Simulated Radar<br>• Point Clouds<br>• Raw Signals]:::source
-    ROUTER[FastAPI Event Router]:::router
-    
-    subgraph Processing_Layer [Ingestion & State]
-        VDB[(sqlite-vec<br>Vector DB)]:::storage
-        FSM[8-Signal State Machine]:::logic
-    end
-
-    GEMMA[Local Gemma 4<br>• Context Prompting<br>• Inference]:::llm
-    SSE[Server-Sent Events<br>SSE Streamer]:::stream
-    NEXT[Next.js Dashboard<br>• Real-time UI]:::ui
-
-    %% Conexiones y Flujo de Datos
-    RADAR -->|JSON over TCP / WebSockets| ROUTER
-    
-    ROUTER -->|Vector Embeddings| VDB
-    ROUTER -->|State Transitions| FSM
-    
-    VDB -->|k-NN Context Retrieval| GEMMA
-    FSM -->|Current State & Payload| GEMMA
-    
-    GEMMA -->|Generated Responses| SSE
-    SSE -->|Text / Event-Stream| NEXT
-
-    %% Configuración visual del subgráfico
-    style Processing_Layer fill:#0f172a,stroke:#4b5563,stroke-dasharray: 5 5,color:#fff
 ## Privacy
 
 Guardian produces no images and no audio recordings. mmWave radar detects presence, motion, and breathing as structured events — physically incapable of producing footage. All data stays in a single SQLite file on your machine. Gemma 4 reasons locally. Zero bytes leave the device.
