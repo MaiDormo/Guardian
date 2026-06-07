@@ -41,6 +41,7 @@ SIGNALS = [
 _ABSENCE_AMBER_SIGNALS: frozenset[str] = frozenset({"woke_up", "took_meds"})
 
 _lock = threading.Lock()
+_force_emit_ctx = False
 _states: dict[str, dict] = {
     s: {"state": "unknown", "reason": "", "cosine_distance": None, "updated_at": None}
     for s in SIGNALS
@@ -64,6 +65,7 @@ def update_signal_state(
     event: dict,
     *,
     now: Optional[datetime] = None,
+    force_emit: bool = False,
 ) -> list[dict]:
     """
     Derive signal_update SSE envelopes from *event*.
@@ -73,6 +75,20 @@ def update_signal_state(
     if now is None:
         now = datetime.now(timezone.utc)
 
+    global _force_emit_ctx
+    prev_force_emit = _force_emit_ctx
+    _force_emit_ctx = force_emit
+    try:
+        return _update_signal_state_inner(event, now=now)
+    finally:
+        _force_emit_ctx = prev_force_emit
+
+
+def _update_signal_state_inner(
+    event: dict,
+    *,
+    now: datetime,
+) -> list[dict]:
     _record_first_event(event.get("timestamp"))
 
     et: str = event.get("event_type") or ""
@@ -329,7 +345,11 @@ def _set(
     stamp = updated_at or _ts()
     with _lock:
         prev_state = _states[signal]["state"]
-        if prev_state == state and _states[signal]["reason"] == reason:
+        if (
+            not _force_emit_ctx
+            and prev_state == state
+            and _states[signal]["reason"] == reason
+        ):
             return None
 
         if prev_state != "amber" and state == "amber":

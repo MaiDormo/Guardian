@@ -98,8 +98,7 @@ def process_event(event: dict) -> list[dict]:
             log.warning("voice_checkin.enrich_event failed (%s)", exc)
 
     # ── 3. Persist (dedup) ───────────────────────────────────────────────────
-    if not _write_event(rec):
-        return []  # duplicate — skip all downstream processing
+    stored = _write_event(rec)
 
     # ── 4. Presence SSE ──────────────────────────────────────────────────────
     sse_out: list[dict] = []
@@ -138,7 +137,11 @@ def process_event(event: dict) -> list[dict]:
     if et != "presence_ended":
         try:
             from signals import update_signal_state  # noqa: PLC0415
-            sse_out.extend(update_signal_state(rec))
+            # Scenario replays reuse fixed timestamps — still stream SSE when DB
+            # dedupes so the dashboard repopulates after state_reset.
+            sse_out.extend(
+                update_signal_state(rec, force_emit=not stored)
+            )
         except Exception as exc:
             log.warning("signals.update_signal_state failed (%s)", exc)
 

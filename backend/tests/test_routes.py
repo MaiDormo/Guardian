@@ -530,3 +530,19 @@ async def test_fall_scenario_auto_dispatches_alert(client, monkeypatch):
     assert len(dispatched) == 1
     assert "FALL ALERT" in dispatched[0]
     assert "bathroom" in dispatched[0]
+
+
+async def test_normal_scenario_replay_streams_all_signals(client):
+    """Second Normal Morning press must still stream woke_up + helper_present."""
+    import asyncio
+    import main
+
+    for _ in range(2):
+        r = await client.post("/scenario/normal")
+        assert r.status_code == 200
+        if main._scenario_task:
+            await asyncio.wait_for(main._scenario_task, timeout=20.0)
+
+    assert main.signal_state["woke_up"]["state"] == "green"
+    assert main.signal_state["helper_present"]["state"] == "green"
+    assert main.signal_state["ate"]["state"] == "green"
