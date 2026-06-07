@@ -30,7 +30,8 @@ describe("ScenarioPlayer", () => {
     );
   });
 
-  it("calls onScenarioStart and clears loading after run", async () => {
+  it("calls onScenarioStart and clears loading after normal scenario duration", async () => {
+    vi.useFakeTimers();
     vi.spyOn(scenario, "runScenario").mockResolvedValue(undefined);
     const onStart = vi.fn();
     const onLoadingChange = vi.fn();
@@ -48,9 +49,10 @@ describe("ScenarioPlayer", () => {
     expect(onStart).toHaveBeenCalled();
     expect(onLoadingChange).toHaveBeenCalledWith("normal");
 
-    await waitFor(() => {
-      expect(onLoadingChange).toHaveBeenCalledWith(null);
-    });
+    await vi.advanceTimersByTimeAsync(11_000);
+
+    expect(onLoadingChange).toHaveBeenCalledWith(null);
+    vi.useRealTimers();
   });
 });
 

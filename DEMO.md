@@ -25,7 +25,7 @@ docker compose up --build -d
 - [ ] Browser at **≥1024px width** (desktop 3-column layout)
 - [ ] Top-right badge shows **Live · SSE** (green); on wide screens also shows *Running On-Device*
 - [ ] Set `WECOM_WEBHOOK_URL` in `.env` if you want a live phone chime on dispatch
-- [ ] Run **Normal Morning** once before judges arrive to confirm green baseline
+- [ ] Run **Normal Morning** once before judges arrive to confirm signals stream in over ~11s
 - [ ] Close extra tabs; mute notifications except demo phone
 
 **Critical timing:** Press **7-Day Trend** and **keep talking** — amber lands at ~3s, four reds at ~15s (**11s narration beat** between amber and red). Do **not** press **Dispatch** until those reds appear and the button highlights.
@@ -57,7 +57,7 @@ docker compose up --build -d
 
 | Button | What it does | Wall time |
 |--------|--------------|-----------|
-| **▶ Normal Morning** | Pre-loads green baseline instantly; zone map animates bedroom → bathroom → kitchen. Connection Window shows **15:00–16:00** immediately. Reasoning at ~11s. | ~11s |
+| **▶ Normal Morning** | Clears cards to blank, then streams eight greens over ~11s as radar/voice events arrive. Zone map animates bedroom → bathroom → kitchen. Connection Window + reasoning at ~11s. | ~11s |
 | **▶ 7-Day Trend** | 7-day drift compressed for stage. Day 5 (~3s): voice amber. Day 7 (~15s): Voice, Location, Routine, Took Meds red. Dispatch button highlights. | ~16s |
 | **▶ Fall Override** | Hard cut — bathroom fall, banner, chime, auto-dispatch. Safety-reflex tier bypasses agent loop for the alert itself; console still logs priority interrupt. | Instant |
 | **Dispatch Local Emergency Care** | WeCom → WhatsApp → overlay fallback. Always shows success overlay. | <1s |
@@ -73,9 +73,9 @@ docker compose up --build -d
 
 **Watch:**
 
-- Vital Signals: all eight cards **green immediately** (pre-loaded 30-day baseline)
+- Vital Signals: eight cards start **blank (—)**, then flip **green one-by-one** over ~11s
 - Abstract Zone Map: bedroom → bathroom → kitchen pulse blue over ~11s
-- Optimal Connection Window: **15:00–16:00** from first paint (no snap)
+- Optimal Connection Window: **15:00–16:00** appears at ~11s with reasoning
 
 **Say:**
 

@@ -14,7 +14,7 @@ import type {
   ConnectionWindowPayload,
   ConnectionAckPayload,
 } from "./types";
-import { SIGNAL_NAMES, emptySignalState } from "./signals";
+import { emptySignalState } from "./signals";
 import { apiUrl } from "./api";
 
 /** Pitch-stable connection window — matches backend stub / seed design. */
@@ -32,66 +32,6 @@ export const DEMO_CONNECTION_WINDOW: ConnectionWindowPayload = {
   rationale:
     "Ah-Ma is typically calm and present in the early afternoon. You are free at this time.",
   updated_at: "1970-01-01T00:00:00.000Z",
-};
-
-/** Pre-loaded 30-day baseline — mirrors backend `_NORMAL_BASELINE` for Act 1 first paint. */
-export const DEMO_BASELINE_SIGNALS: Record<string, SignalStateData> = {
-  woke_up: {
-    signal: "woke_up",
-    state: "green",
-    reason: "Morning presence detected in bedroom window",
-    cosine_distance: null,
-    updated_at: "1970-01-01T00:00:00.000Z",
-  },
-  ate: {
-    signal: "ate",
-    state: "green",
-    reason: "Kitchen dwell 22 min — within baseline",
-    cosine_distance: null,
-    updated_at: "1970-01-01T00:00:00.000Z",
-  },
-  took_meds: {
-    signal: "took_meds",
-    state: "green",
-    reason: "Dispenser opened — compartment morning",
-    cosine_distance: null,
-    updated_at: "1970-01-01T00:00:00.000Z",
-  },
-  rested_well: {
-    signal: "rested_well",
-    state: "green",
-    reason: "Breathing rate 14 bpm — within baseline",
-    cosine_distance: null,
-    updated_at: "1970-01-01T00:00:00.000Z",
-  },
-  voice_checkin: {
-    signal: "voice_checkin",
-    state: "green",
-    reason: "Speech 138 wpm, clarity 0.87",
-    cosine_distance: null,
-    updated_at: "1970-01-01T00:00:00.000Z",
-  },
-  helper_present: {
-    signal: "helper_present",
-    state: "green",
-    reason: "Second presence detected in helper window",
-    cosine_distance: null,
-    updated_at: "1970-01-01T00:00:00.000Z",
-  },
-  location: {
-    signal: "location",
-    state: "green",
-    reason: "Density score 0.91",
-    cosine_distance: null,
-    updated_at: "1970-01-01T00:00:00.000Z",
-  },
-  routine: {
-    signal: "routine",
-    state: "green",
-    reason: "Cosine distance 0.04",
-    cosine_distance: 0.04,
-    updated_at: "1970-01-01T00:00:00.000Z",
-  },
 };
 
 export type SSEHealth = "connected" | "reconnecting" | "disconnected";
@@ -142,24 +82,14 @@ function createEmptyState(): SSEState {
   };
 }
 
-/** Initial state — demo baseline on first paint (no gray "Awaiting baseline" flash). */
+/** Initial state — blank signals until a scenario streams data in. */
 function createConnectingState(): SSEState {
   return {
     ...createEmptyState(),
-    signals: { ...DEMO_BASELINE_SIGNALS },
-    reasoning: [],
     sseHealth: "reconnecting",
     connectionWindow: DEMO_CONNECTION_WINDOW,
     connectionWindowLoading: false,
   };
-}
-
-async function primeDemoBaseline(): Promise<void> {
-  try {
-    await fetch(`${apiUrl()}/scenario/normal`, { method: "POST" });
-  } catch {
-    /* offline — keep seeded UI until SSE reconnects */
-  }
 }
 
 /** Keep one reasoning row per signal — latest assessment wins. */
@@ -172,23 +102,6 @@ export function upsertReasoning(
   const next = [...prev];
   next[idx] = entry;
   return next;
-}
-
-function signalsFromStatus(raw: Record<string, Partial<SignalStateData>>): Record<string, SignalStateData> {
-  const signals = emptySignalState() as Record<string, SignalStateData>;
-  for (const name of SIGNAL_NAMES) {
-    const data = raw[name];
-    if (data && data.state && data.state !== "unknown") {
-      signals[name] = {
-        signal: name,
-        state: data.state as SignalState,
-        reason: data.reason || "",
-        cosine_distance: data.cosine_distance ?? null,
-        updated_at: data.updated_at ?? null,
-      };
-    }
-  }
-  return signals;
 }
 
 async function hydrateFromBackend(
@@ -207,23 +120,18 @@ async function hydrateFromBackend(
     const status = await statusRes.json();
     const connection = connectionRes.ok ? await connectionRes.json() : null;
 
-    setState((prev) => {
-      const hydratedReasoning = Array.isArray(status.reasoning)
-        ? (status.reasoning as ReasoningPayload[])
-        : prev.reasoning;
-      return {
-        ...prev,
-        backendConnected: true,
-        sseHealth: "connected",
-        connectionWindowLoading: false,
-        signals: status.signals ? signalsFromStatus(status.signals) : prev.signals,
-        reasoning: hydratedReasoning.length > 0 ? hydratedReasoning : prev.reasoning,
-        connectionWindow: connection?.best_window
-          ? connection
-          : prev.connectionWindow ?? DEMO_CONNECTION_WINDOW,
-        dispatchChannels: status.dispatch ?? prev.dispatchChannels,
-      };
-    });
+    setState((prev) => ({
+      ...prev,
+      backendConnected: true,
+      sseHealth: "connected",
+      connectionWindowLoading: false,
+      // Signals/reasoning come only from live SSE scenario events — not /status
+      // (backend may still hold the last run in memory for operator curl checks).
+      connectionWindow: connection?.best_window
+        ? connection
+        : prev.connectionWindow ?? DEMO_CONNECTION_WINDOW,
+      dispatchChannels: status.dispatch ?? prev.dispatchChannels,
+    }));
   } catch {
     setState((prev) => ({
       ...prev,
@@ -237,18 +145,7 @@ export function useSSE() {
   const [state, setState] = useState<SSEState>(createConnectingState);
   const esRef = useRef<EventSource | null>(null);
   const reconnectRef = useRef(0);
-  const primedRef = useRef(false);
-  const connectGenRef = useRef(0);
-
   const connect = useCallback(async () => {
-    const gen = ++connectGenRef.current;
-
-    if (!primedRef.current) {
-      primedRef.current = true;
-      await primeDemoBaseline();
-    }
-    if (gen !== connectGenRef.current) return;
-
     const url = `${apiUrl()}/events`;
 
     if (esRef.current) {
@@ -402,7 +299,6 @@ export function useSSE() {
     void connect();
 
     return () => {
-      connectGenRef.current += 1;
       if (esRef.current) {
         esRef.current.close();
       }

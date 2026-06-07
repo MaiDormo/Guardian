@@ -4,7 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { API } from "../../tests/mocks/handlers";
 import { server } from "../../tests/mocks/server";
 import { MockEventSource } from "../../tests/mocks/mock-event-source";
-import { DEMO_BASELINE_SIGNALS, DEMO_CONNECTION_WINDOW, useSSE } from "./useSSE";
+import { emptySignalState } from "./signals";
+import { DEMO_CONNECTION_WINDOW, useSSE } from "./useSSE";
 import { makeSignal } from "../../tests/fixtures";
 
 describe("useSSE", () => {
@@ -36,10 +37,10 @@ describe("useSSE", () => {
     expect(result.current.connectionWindowLoading).toBe(false);
   });
 
-  it("seeds demo baseline greens on mount instead of awaiting baseline", () => {
+  it("starts with blank unknown signals until a scenario streams data", () => {
     const { result } = renderHook(() => useSSE());
 
-    expect(result.current.signals).toEqual(DEMO_BASELINE_SIGNALS);
+    expect(result.current.signals).toEqual(emptySignalState());
     expect(result.current.reasoning).toEqual([]);
   });
 
@@ -53,7 +54,7 @@ describe("useSSE", () => {
       expect(result.current.connectionWindowLoading).toBe(false);
     });
 
-    expect(result.current.signals.woke_up?.state).toBe("green");
+    expect(result.current.signals.woke_up?.state).toBe("unknown");
     expect(result.current.connectionWindow?.best_window).toBe("2:00 – 3:30 PM");
     expect(result.current.dispatchChannels?.primary).toBe("overlay_only");
     expect(result.current.dispatchChannels?.auto_dispatch_on_fall).toBe(true);

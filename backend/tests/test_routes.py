@@ -245,19 +245,69 @@ async def test_scenario_resets_all_signals_to_unknown(client):
         )
 
 
-async def test_normal_preloads_green_baseline_immediately(client):
-    """Normal Morning must show green vital cards instantly (pre-loaded baseline)."""
+async def test_normal_streams_signals_over_time(client, monkeypatch):
+    """Normal Morning must stream signal updates over the timeline, not preload all greens."""
+    import asyncio
     import main
+
+    signal_updates: list[tuple[float, str]] = []
+    original_broadcast = main._broadcast
+
+    async def capture_broadcast(event: dict) -> None:
+        if event.get("event") == "signal_update":
+            signal_updates.append(
+                (time.monotonic(), event["payload"]["signal"])
+            )
+        await original_broadcast(event)
+
+    monkeypatch.setattr(main, "_broadcast", capture_broadcast)
 
     r = await client.post("/scenario/normal")
     assert r.status_code == 200
 
-    green_count = sum(
-        1 for sig in main.SIGNALS if main.signal_state[sig]["state"] == "green"
-    )
-    assert green_count == len(main.SIGNALS), (
-        f"expected all {len(main.SIGNALS)} signals green, got {green_count}"
-    )
+    if main._scenario_task:
+        await asyncio.wait_for(main._scenario_task, timeout=15.0)
+
+    distinct = {sig for _, sig in signal_updates}
+    assert len(distinct) >= 8, f"expected 8 streamed signals, got {distinct}"
+    if len(signal_updates) >= 2:
+        span = signal_updates[-1][0] - signal_updates[0][0]
+        assert span >= 1.0, f"signals arrived too fast ({span:.2f}s) — likely preloaded"
+
+
+async def test_trend_7day_populates_rested_helper_and_location_early(client, monkeypatch):
+    """7-Day Trend must surface rested/helper/location early — not blank until Day 7."""
+    import asyncio
+    import time
+    import main
+
+    location_updates: list[tuple[float, str]] = []
+    original_broadcast = main._broadcast
+
+    async def capture_broadcast(event: dict) -> None:
+        if (
+            event.get("event") == "signal_update"
+            and event["payload"].get("signal") == "location"
+        ):
+            location_updates.append(
+                (time.monotonic(), event["payload"]["state"])
+            )
+        await original_broadcast(event)
+
+    monkeypatch.setattr(main, "_broadcast", capture_broadcast)
+
+    r = await client.post("/scenario/trend_7day")
+    assert r.status_code == 200
+    t0 = time.monotonic()
+
+    if main._scenario_task:
+        await asyncio.wait_for(main._scenario_task, timeout=20.0)
+
+    assert main.signal_state["rested_well"]["state"] != "unknown"
+    assert main.signal_state["helper_present"]["state"] != "unknown"
+    assert location_updates, "expected at least one location signal_update"
+    first_delay = location_updates[0][0] - t0
+    assert first_delay < 5.0, f"location first appeared at {first_delay:.1f}s — too slow for Act 2"
 
 
 async def test_trend_amber_red_gap_at_least_10s(client, monkeypatch):

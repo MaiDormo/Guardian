@@ -91,18 +91,6 @@ def _empty_state() -> dict:
 signal_state: dict[str, dict] = _empty_state()
 fall_active: bool = False
 
-# End-state of Normal Morning — pre-loaded 30-day baseline for Act 1 instant greens
-_NORMAL_BASELINE: list[tuple[str, str, str, float | None]] = [
-    ("woke_up", "green", "Morning presence detected in bedroom window", None),
-    ("ate", "green", "Kitchen dwell 22 min — within baseline", None),
-    ("took_meds", "green", "Dispenser opened — compartment morning", None),
-    ("rested_well", "green", "Breathing rate 14 bpm — within baseline", None),
-    ("voice_checkin", "green", "Speech 138 wpm, clarity 0.87", None),
-    ("helper_present", "green", "Second presence detected in helper window", None),
-    ("location", "green", "Density score 0.91", None),
-    ("routine", "green", "Cosine distance 0.04", 0.04),
-]
-
 # ---------------------------------------------------------------------------
 # SSE client registry
 # ---------------------------------------------------------------------------
@@ -318,15 +306,15 @@ SCENARIO_EVENTS: dict[str, list[tuple[float, dict]]] = {
                "payload": {"speech_rate_wpm": 138, "clarity_score": 0.87,
                            "sentiment": "positive", "confusion_markers": False,
                            "response_latency_s": 1.2, "duration_s": 142}}),
+        (8.5, {"event_type": "location_update", "source": "gps_tracker",
+               "timestamp": "", "confidence": 0.97,
+               "payload": {"lat": 22.5431, "lng": 114.0579,
+                           "distance_from_home_m": 620,
+                           "trajectory_density_score": 0.91,
+                           "baseline_cluster_match": True}}),
         (9.0, {"event_type": "multi_presence_detected", "source": "mmwave_ld2410",
                "room": "living_room", "timestamp": "", "confidence": 0.94,
                "payload": {"targets": 2, "motion": "mixed"}}),
-        (10.0, {"event_type": "location_update", "source": "gps_tracker",
-                "timestamp": "", "confidence": 0.97,
-                "payload": {"lat": 22.5431, "lng": 114.0579,
-                            "distance_from_home_m": 620,
-                            "trajectory_density_score": 0.91,
-                            "baseline_cluster_match": True}}),
         (11.0, {"event_type": "cosine_update", "source": "baseline",
                 "timestamp": "", "confidence": 1.0,
                 "payload": {"cosine_distance": 0.04}}),
@@ -344,11 +332,23 @@ SCENARIO_EVENTS: dict[str, list[tuple[float, dict]]] = {
                 "timestamp": "", "confidence": 1.0,
                 "payload": {"compartment": "morning", "expected_window_start": "08:00",
                             "delta_minutes": 11}}),
+        (1.0,  {"event_type": "breathing_update", "source": "mmwave_mr60bha2",
+                "room": "bedroom", "timestamp": "", "confidence": 0.93,
+                "payload": {"rate_bpm": 14, "in_baseline": True, "overnight_dwell_h": 7.8}}),
+        (1.05, {"event_type": "multi_presence_detected", "source": "mmwave_ld2410",
+                "room": "living_room", "timestamp": "", "confidence": 0.94,
+                "payload": {"targets": 2, "motion": "mixed"}}),
         (1.2,  {"event_type": "voice_checkin_completed", "source": "voice_system",
                 "timestamp": "", "confidence": 0.92,
                 "payload": {"speech_rate_wpm": 141, "clarity_score": 0.88,
                             "sentiment": "positive", "confusion_markers": False,
                             "response_latency_s": 1.1, "duration_s": 145}}),
+        (1.3,  {"event_type": "location_update", "source": "gps_tracker",
+                "timestamp": "", "confidence": 0.97,
+                "payload": {"lat": 22.5433, "lng": 114.0577,
+                            "distance_from_home_m": 610,
+                            "trajectory_density_score": 0.93,
+                            "baseline_cluster_match": True}}),
         (1.6,  {"event_type": "cosine_update", "source": "baseline",
                 "timestamp": "", "confidence": 1.0,
                 "payload": {"cosine_distance": 0.04}}),
@@ -449,20 +449,8 @@ def _reset_state() -> None:
             log.warning("ingestion.reset_state failed (%s)", exc)
 
 
-async def _broadcast_normal_baseline() -> None:
-    """Pre-load Act 1 green baseline instantly; zone map still animates over ~11s."""
-    for signal, state, reason, cosine in _NORMAL_BASELINE:
-        await _broadcast(_make_signal_sse(signal, state, reason, cosine))
-
-
-async def _broadcast_connection_window_early() -> None:
-    """Connection window at Normal Morning start — no agent assess (reasoning at ~11s)."""
-    if HAS_CONNECTION:
-        prefs = await asyncio.to_thread(load_prefs)
-        window = await asyncio.to_thread(compute_connection_window, prefs)
-    else:
-        window = _connection_window_stub()
-    await _broadcast({"event": "connection_window", "payload": window})
+def _scenario_is_live() -> bool:
+    return _scenario_task is not None and not _scenario_task.done()
 
 
 # ---------------------------------------------------------------------------
@@ -682,22 +670,24 @@ async def events(request: Request) -> EventSourceResponse:
         _clients.append(q)
         log.info("SSE client connected (%d total)", len(_clients))
 
-        # Send current state snapshot on connect
-        for sig, data in signal_state.items():
-            if data["state"] != "unknown":
-                snapshot = {
-                    "event": "signal_update",
-                    "payload": {"signal": sig, **data},
-                }
-                yield {"data": json.dumps(snapshot)}
+        # Only snapshot while a scenario is actively running — avoid replaying
+        # the previous pitch run to fresh tabs or reconnects.
+        if _scenario_is_live():
+            for sig, data in signal_state.items():
+                if data["state"] != "unknown":
+                    snapshot = {
+                        "event": "signal_update",
+                        "payload": {"signal": sig, **data},
+                    }
+                    yield {"data": json.dumps(snapshot)}
 
-        if HAS_AGENT and _agent is not None:
-            for payload in _agent.reasoning_snapshot():
-                yield {
-                    "data": json.dumps(
-                        {"event": "reasoning_update", "payload": payload}
-                    )
-                }
+            if HAS_AGENT and _agent is not None:
+                for payload in _agent.reasoning_snapshot():
+                    yield {
+                        "data": json.dumps(
+                            {"event": "reasoning_update", "payload": payload}
+                        )
+                    }
 
         if HAS_CONNECTION:
             try:
@@ -748,10 +738,6 @@ async def run_scenario(name: str) -> dict:
 
     # Broadcast state reset so the dashboard clears
     await _broadcast({"event": "state_reset", "payload": {"scenario": name, "updated_at": _ts()}})
-
-    if name == "normal":
-        await _broadcast_normal_baseline()
-        await _broadcast_connection_window_early()
 
     _scenario_task = asyncio.create_task(_run_scenario(name))
     return {"status": "started", "scenario": name}

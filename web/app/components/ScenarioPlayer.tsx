@@ -9,6 +9,12 @@ const SCENARIOS = [
   { name: "fall", label: "Fall Override", danger: true },
 ];
 
+const SCENARIO_LOADING_MS: Record<string, number> = {
+  normal: 11_000,
+  trend_7day: 16_000,
+  fall: 500,
+};
+
 interface ScenarioPlayerProps {
   onScenarioStart: () => void;
   loading: string | null;
@@ -27,7 +33,7 @@ export async function triggerScenario(
   } catch {
     /* fires regardless */
   }
-  setTimeout(() => onLoadingChange(null), 500);
+  setTimeout(() => onLoadingChange(null), SCENARIO_LOADING_MS[name] ?? 500);
 }
 
 export default function ScenarioPlayer({
