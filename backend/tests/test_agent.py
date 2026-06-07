@@ -50,6 +50,12 @@ def test_cache_covers_trend_routine_red():
     assert ("trend_7day", "routine", "red") in _CACHE
 
 
+def test_cache_covers_trend_took_meds_red():
+    """PRD § 7 Scenario B: took_meds red must have cached reasoning."""
+    from agent import _CACHE
+    assert ("trend_7day", "took_meds", "red") in _CACHE
+
+
 def test_cache_covers_fall_interrupt():
     """PRD § 4.2 / § 5.2: fall interrupt must have immediate cached reasoning."""
     from agent import _CACHE

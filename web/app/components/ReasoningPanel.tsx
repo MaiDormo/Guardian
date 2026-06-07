@@ -27,11 +27,18 @@ const VERDICT_GLYPH: Record<"red" | "amber" | "green", { glyph: string; cls: str
   green: { glyph: "●", cls: "text-primary-fixed" },
 };
 
+const TRANSITION_STATE_RE = /transitioned to '(red|amber|green)'/i;
+
 function inferState(r: ReasoningPayload): "red" | "amber" | "green" {
   if (r.signal === "fall_detected") return "red";
   if (typeof r.cosine_distance === "number") {
     if (r.cosine_distance >= 0.25) return "red";
     if (r.cosine_distance >= 0.12) return "amber";
+  }
+  const transition = r.rationale.match(TRANSITION_STATE_RE);
+  if (transition) {
+    const state = transition[1].toLowerCase();
+    if (state === "red" || state === "amber" || state === "green") return state;
   }
   return "green";
 }

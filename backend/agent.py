@@ -93,6 +93,16 @@ _CACHE: dict[tuple[str, str, str], dict] = {
             "consistent with early acute episode. Intervention recommended."
         ),
     },
+    ("trend_7day", "took_meds", "red"): {
+        "cosine_distance": 0.38,
+        "baseline_window_days": 14,
+        "features_considered": ["dispenser_compliance", "medication_window"],
+        "rationale": (
+            "Day 7: morning dispenser missed — 120 min overdue. "
+            "Medication adherence dropped alongside voice distress and wandering. "
+            "Cross-referenced with acute cognitive episode pattern."
+        ),
+    },
     ("trend_7day", "ate", "amber"): {
         "cosine_distance": 0.17,
         "baseline_window_days": 14,

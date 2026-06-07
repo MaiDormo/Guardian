@@ -65,6 +65,50 @@ describe("ReasoningPanel", () => {
     expect(screen.getByRole("status")).toHaveTextContent(/Stream offline/i);
   });
 
+  it("infers red verdict for took_meds placeholder without cosine distance", () => {
+    render(
+      <ReasoningPanel
+        reasoning={[
+          {
+            signal: "took_meds",
+            cosine_distance: null,
+            baseline_window_days: 14,
+            features_considered: [],
+            rationale:
+              "Signal 'took_meds' transitioned to 'red'. Detailed reasoning pending (Ollama not reachable).",
+            updated_at: "2026-06-07T10:00:00Z",
+          },
+        ]}
+        demoMode
+      />
+    );
+
+    expect(screen.getByText(/took meds/i)).toHaveClass("text-error");
+    expect(screen.queryByText(/Ollama not reachable/i)).toBeInTheDocument();
+  });
+
+  it("shows cached took_meds crisis line in demo mode", () => {
+    render(
+      <ReasoningPanel
+        reasoning={[
+          {
+            signal: "took_meds",
+            cosine_distance: 0.38,
+            baseline_window_days: 14,
+            features_considered: ["dispenser_compliance"],
+            rationale:
+              "Day 7: morning dispenser missed — 120 min overdue. Medication adherence dropped alongside voice distress and wandering.",
+            updated_at: "2026-06-07T10:00:00Z",
+          },
+        ]}
+        demoMode
+      />
+    );
+
+    expect(screen.getByText("120 min overdue", { exact: true })).toBeInTheDocument();
+    expect(screen.getByText(/took meds/i)).toHaveClass("text-error");
+  });
+
   it("shows red verdict for fall_detected in demo mode", () => {
     render(
       <ReasoningPanel

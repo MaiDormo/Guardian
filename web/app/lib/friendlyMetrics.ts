@@ -369,6 +369,11 @@ export function formatReasoningStatLine(entry: ReasoningStatInput): string {
     }
   }
 
+  if (signal === "took_meds") {
+    const overdue = rationale.match(/(\d+)\s*min overdue/i);
+    if (overdue) return `${overdue[1]} min overdue`;
+  }
+
   if (signal === "routine" && typeof cosine_distance === "number") {
     return formatDeviationStat(cosine_distance);
   }
