@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Play, AlertTriangle, Loader2 } from "lucide-react";
+import { apiUrl } from "../lib/api";
 
 const SCENARIOS = [
   { name: "normal", label: "Normal Morning" },
@@ -20,8 +21,7 @@ export default function ScenarioPlayer({ onScenarioStart }: ScenarioPlayerProps)
     setLoading(name);
     onScenarioStart();
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      await fetch(`${apiUrl}/scenario/${name}`, { method: "POST" });
+      await fetch(`${apiUrl()}/scenario/${name}`, { method: "POST" });
     } catch (e) {
       /* scenario fires regardless */
     }

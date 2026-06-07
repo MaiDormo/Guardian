@@ -7,122 +7,132 @@ interface LocationMapProps {
   wandering: WanderingPayload | null;
 }
 
+const NODES = [
+  { id: "home", label: "Home", x: 170, y: 160 },
+  { id: "market", label: "Wet Market", x: 337, y: 65 },
+  { id: "dimsum", label: "Dim Sum", x: 45, y: 35 },
+  { id: "mtr", label: "MTR", x: 30, y: 185 },
+];
+
 export default function LocationMap({ location, wandering }: LocationMapProps) {
   const isWandering = wandering !== null;
 
   return (
-    <div className="border border-outline-variant rounded-xl p-lg overflow-hidden bg-surface-container-low">
-      <div className="flex justify-between items-center mb-md">
-        <h2 className="text-headline-md text-on-surface">Map</h2>
-        <div className="flex items-center gap-2">
-          {isWandering && (
-            <>
-              <span className="w-2 h-2 rounded-full bg-error pulse-red" />
-              <span className="text-label-sm text-error font-bold">LIVE ALERT</span>
-            </>
-          )}
-          {!isWandering && (
-            <span className="text-label-sm text-primary font-bold">GPS ACTIVE</span>
-          )}
-        </div>
-      </div>
+    <section
+      aria-label="GBA trajectory map"
+      className="flex h-full flex-col gap-2 rounded-xl border border-border bg-card/60 p-3"
+    >
+      <header className="flex items-center justify-between">
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          GBA Trajectory Map
+        </h2>
+        <span
+          className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+            isWandering ? "bg-alert/20 text-alert" : "bg-ok/15 text-ok"
+          }`}
+        >
+          {isWandering ? "Wandering" : "In footprint"}
+        </span>
+      </header>
 
-      <div className="relative w-full aspect-[4/3] bg-surface-container rounded-lg overflow-hidden">
-        <svg viewBox="0 0 400 300" className="w-full h-full">
-          {/* Background grid streets */}
-          <rect width="400" height="300" fill="#e5eeff" />
+      <div className="relative flex-1 overflow-hidden rounded-lg border border-border bg-[oklch(0.18_0.013_250)]">
+        <svg
+          viewBox="0 0 400 300"
+          className="h-full w-full"
+          role="img"
+          aria-label={
+            isWandering
+              ? "Anomalous wandering trajectory outside the established footprint"
+              : "Normal daily footprint within the established trajectory"
+          }
+        >
+          <defs>
+            <filter id="loc-glow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="3" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+            <pattern id="loc-grid" width="28" height="28" patternUnits="userSpaceOnUse">
+              <path d="M 28 0 L 0 0 0 28" fill="none" stroke="oklch(0.3 0.015 250)" strokeWidth="0.5" />
+            </pattern>
+          </defs>
 
-          {/* Streets */}
-          <line x1="0" y1="80" x2="400" y2="80" stroke="#d3e4fe" strokeWidth="3" />
-          <line x1="0" y1="160" x2="400" y2="160" stroke="#d3e4fe" strokeWidth="3" />
-          <line x1="0" y1="240" x2="400" y2="240" stroke="#d3e4fe" strokeWidth="3" />
-          <line x1="130" y1="0" x2="130" y2="300" stroke="#d3e4fe" strokeWidth="3" />
-          <line x1="270" y1="0" x2="270" y2="300" stroke="#d3e4fe" strokeWidth="3" />
+          <rect width="400" height="300" fill="url(#loc-grid)" />
 
-          {/* Landmarks */}
-          <rect x="15" y="15" width="30" height="20" rx="3" fill="#c8e6c9" />
-          <text x="30" y="28" textAnchor="middle" fill="#2e7d32" fontSize="6" fontWeight="600">PARK</text>
-
-          <rect x="15" y="175" width="30" height="20" rx="3" fill="#fff3e0" />
-          <text x="30" y="188" textAnchor="middle" fill="#e65100" fontSize="6" fontWeight="600">MTR</text>
-
-          <rect x="320" y="55" width="35" height="20" rx="3" fill="#fff9c4" />
-          <text x="337" y="68" textAnchor="middle" fill="#f57f17" fontSize="6" fontWeight="600">MARKET</text>
-
-          <rect x="320" y="215" width="35" height="20" rx="3" fill="#fce4ec" />
-          <text x="337" y="228" textAnchor="middle" fill="#c62828" fontSize="6" fontWeight="600">CLINIC</text>
-
-          {/* Home base */}
-          <rect x="152" y="142" width="36" height="36" rx="4" fill="#006948" />
-          <text x="170" y="165" textAnchor="middle" fill="white" fontSize="8" fontWeight="600">HOME</text>
-
-          {/* Normal path (green dashed) */}
-          {!isWandering && (
+          {/* Normal footprint — hand-drawn route, neutral/green */}
+          <g className={`transition-opacity duration-700 ${isWandering ? "opacity-25" : "opacity-100"}`}>
             <path
-              d="M 170 160 Q 100 120 45 35"
+              d="M170 160 Q110 95 45 35 Q-10 110 30 185 Q90 230 170 160 Z"
               fill="none"
-              stroke="#22c55e"
+              stroke="oklch(0.72 0.16 155)"
               strokeWidth="2.5"
-              strokeDasharray="5 4"
-              opacity="0.6"
+              strokeLinecap="round"
+              strokeDasharray="1 7"
+              className="animate-dash-flow"
             />
-          )}
-
-          {/* Wandering trace (red glow) */}
-          {isWandering && (
-            <>
-              <defs>
-                <filter id="glow">
-                  <feGaussianBlur stdDeviation="3" result="blur" />
-                  <feMerge>
-                    <feMergeNode in="blur" />
-                    <feMergeNode in="SourceGraphic" />
-                  </feMerge>
-                </filter>
-              </defs>
-              <path
-                d="M 170 160 Q 230 100 300 70 Q 350 90 340 180 Q 320 260 280 220"
-                fill="none"
-                stroke="#ef4444"
-                strokeWidth="3"
-                strokeDasharray="6 4"
-                opacity="0.85"
-                filter="url(#glow)"
-              />
-              {/* Anomalous markers */}
-              <circle cx="280" cy="220" r="4" fill="#ef4444" opacity="0.7" />
-              <circle cx="340" cy="180" r="3" fill="#ef4444" opacity="0.5" />
-              <circle cx="300" cy="70" r="3" fill="#ef4444" opacity="0.5" />
-            </>
-          )}
-
-          {/* Location pin */}
-          <g transform="translate(170, 160)">
-            <path d="M0-18C-9-18-18-9-18 0C-18 12 0 28 0 28C0 28 18 12 18 0C18-9 9-18 0-18Z"
-                  fill={isWandering ? "#ef4444" : "#006948"} opacity="0.12" />
-            <circle cx="0" cy="0" r="7" fill={isWandering ? "#ef4444" : "#006948"}
-                    className={isWandering ? "animate-blink-pin" : ""} />
-            <circle cx="0" cy="0" r="3" fill="white" />
           </g>
+
+          {/* Anomalous trace — pre-baked red wandering path, revealed on event */}
+          <g className={`transition-opacity duration-700 ${isWandering ? "opacity-100 animate-pulse" : "opacity-0"}`}>
+            <path
+              d="M170 160 Q230 100 300 70 Q350 90 340 180 Q320 260 280 220"
+              fill="none"
+              stroke="oklch(0.62 0.23 22)"
+              strokeWidth="3"
+              strokeLinecap="round"
+              filter="url(#loc-glow)"
+            />
+            <circle cx="280" cy="220" r="5" fill="oklch(0.62 0.23 22)" filter="url(#loc-glow)" />
+            <circle cx="340" cy="180" r="3.5" fill="oklch(0.62 0.23 22)" opacity="0.6" />
+            <circle cx="300" cy="70" r="3.5" fill="oklch(0.62 0.23 22)" opacity="0.6" />
+          </g>
+
+          {/* Named nodes */}
+          {NODES.map((n) => (
+            <g key={n.id}>
+              <circle
+                cx={n.x}
+                cy={n.y}
+                r={n.id === "home" ? 6 : 3.5}
+                fill={n.id === "home" ? "oklch(0.66 0.16 248)" : "oklch(0.66 0.015 245)"}
+                className={n.id === "home" && isWandering ? "animate-blink-pin" : ""}
+              />
+              <text
+                x={n.x}
+                y={n.y - 11}
+                textAnchor="middle"
+                fontSize="9"
+                fill="oklch(0.66 0.015 245)"
+                fontFamily="ui-monospace, monospace"
+              >
+                {n.label}
+              </text>
+            </g>
+          ))}
         </svg>
 
-        {/* GPS badge */}
-        <div className="absolute bottom-3 right-3 bg-surface/90 backdrop-blur-sm px-3 py-1 rounded-full border border-outline-variant shadow-sm">
-          <span className="text-label-sm text-primary font-bold">GPS ACTIVE</span>
-        </div>
-
-        {/* Wandering badge */}
         {wandering && (
-          <div className="absolute bottom-3 left-3 bg-error/90 backdrop-blur-sm px-3 py-1.5 rounded-lg shadow-sm">
-            <p className="text-label-sm text-on-error font-bold">
+          <div className="absolute bottom-3 left-3 rounded-lg bg-alert/90 px-3 py-1.5 shadow-sm backdrop-blur-sm">
+            <p className="text-[11px] font-bold text-alert-foreground">
               {wandering.minutes_outside_baseline_footprint} min outside
             </p>
-            <p className="text-[9px] text-on-error/80">
+            <p className="text-[9px] text-alert-foreground/80">
               density {wandering.trajectory_density_score.toFixed(2)}
             </p>
           </div>
         )}
       </div>
-    </div>
+
+      <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+        <span className="font-mono">
+          density {location ? location.trajectory_density_score.toFixed(2) : "—"}
+        </span>
+        <span className="font-mono">
+          {location ? `${location.distance_from_home_m}m from home` : "awaiting GPS…"}
+        </span>
+      </div>
+    </section>
   );
 }

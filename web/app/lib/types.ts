@@ -70,6 +70,32 @@ export interface StateResetPayload {
   updated_at: string;
 }
 
+export type ConnectionConfidence = "high" | "moderate" | "low";
+
+export interface ConnectionWindowPayload {
+  best_window: string;
+  best_hour: number;
+  overlap_with_child: boolean;
+  confidence: ConnectionConfidence;
+  evidence: {
+    presence_days: number | null;
+    baseline_days: number;
+    avg_clarity: number | null;
+    positivity_rate: number | null;
+  };
+  rationale: string;
+  updated_at: string;
+}
+
+export interface ConnectionAckPayload {
+  dispatched: boolean;
+  channel: string;
+  best_window: string;
+  rationale: string;
+  message_preview: string;
+  updated_at: string;
+}
+
 export type SSEEvent =
   | { event: "signal_update"; payload: SignalStateData }
   | { event: "presence_update"; payload: PresencePayload }
@@ -78,5 +104,7 @@ export type SSEEvent =
   | { event: "fall_detected"; payload: FallPayload }
   | { event: "reasoning_update"; payload: ReasoningPayload }
   | { event: "intervention_ack"; payload: InterventionAckPayload }
+  | { event: "connection_window"; payload: ConnectionWindowPayload }
+  | { event: "connection_ack"; payload: ConnectionAckPayload }
   | { event: "state_reset"; payload: StateResetPayload }
   | { event: "ping"; payload: Record<string, never> };

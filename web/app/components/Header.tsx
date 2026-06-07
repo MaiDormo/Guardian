@@ -2,7 +2,11 @@
 
 import { Bell } from "lucide-react";
 
-export default function Header() {
+interface HeaderProps {
+  backendConnected?: boolean;
+}
+
+export default function Header({ backendConnected = false }: HeaderProps) {
   return (
     <header className="sticky top-0 z-50 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/30 shadow-sm flex items-center justify-between px-gutter h-16">
       <div className="flex items-center gap-3">
@@ -14,9 +18,30 @@ export default function Header() {
           <span className="text-label-sm text-on-surface-variant">Elderly Care Monitor</span>
         </div>
       </div>
-      <button className="text-primary hover:opacity-80 transition-opacity active:scale-95">
-        <Bell size={24} />
-      </button>
+
+      <div className="flex items-center gap-3">
+        <div
+          className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold ${
+            backendConnected
+              ? "bg-primary-container/50 border-primary/20 text-primary"
+              : "bg-surface-container border-outline-variant text-on-surface-variant"
+          }`}
+        >
+          <span
+            className={`w-1.5 h-1.5 rounded-full ${
+              backendConnected ? "bg-primary animate-pulse" : "bg-outline-variant"
+            }`}
+          />
+          {backendConnected ? "On-Device · 0 bytes to cloud" : "Connecting…"}
+        </div>
+        <button
+          type="button"
+          aria-label="Notifications"
+          className="text-primary hover:opacity-80 transition-opacity active:scale-95"
+        >
+          <Bell size={24} />
+        </button>
+      </div>
     </header>
   );
 }

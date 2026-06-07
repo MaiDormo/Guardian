@@ -7,7 +7,7 @@ services:
       - ./data:/app/data
       - guardian_db:/app/db
     environment:
-      OLLAMA_HOST: http://host.docker.internal:11434
+      OLLAMA_HOST: http://host.docker.internal:11435
       DB_PATH: /app/db/guardian.db
     env_file:
       - .env

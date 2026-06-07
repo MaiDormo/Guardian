@@ -379,11 +379,20 @@ async def _run_scenario(name: str) -> None:
         await _ingest_and_broadcast(evt)
     log.info("✓ scenario '%s' complete", name)
 
+    if name == "normal":
+        await _broadcast_connection_suggestion()
+
 
 def _reset_state() -> None:
     global signal_state, fall_active
     signal_state = _empty_state()
     fall_active = False
+    if HAS_TANMAY:
+        try:
+            from ingestion import reset_state as _ingest_reset  # noqa: PLC0415
+            _ingest_reset()
+        except Exception as exc:
+            log.warning("ingestion.reset_state failed (%s)", exc)
 
 
 # ---------------------------------------------------------------------------
@@ -453,6 +462,13 @@ class ConnectionRequest(BaseModel):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global _agent
+    try:
+        from seed import seed_all  # noqa: PLC0415
+        await asyncio.to_thread(seed_all)
+        log.info("seed_all() complete ✓")
+    except Exception as exc:
+        log.warning("seed_all() skipped (%s)", exc)
+
     if HAS_AGENT:
         _agent = GuardianAgent(ollama_host=OLLAMA_HOST, broadcast=_broadcast)
         await _agent.initialise()
@@ -524,6 +540,18 @@ async def events(request: Request) -> EventSourceResponse:
                 }
                 yield {"data": json.dumps(snapshot)}
 
+        if HAS_CONNECTION:
+            try:
+                prefs = load_prefs()
+                window = compute_connection_window(prefs)
+                yield {
+                    "data": json.dumps(
+                        {"event": "connection_window", "payload": window}
+                    )
+                }
+            except Exception as exc:
+                log.warning("SSE connection_window snapshot failed (%s)", exc)
+
         try:
             while True:
                 if await request.is_disconnected():
@@ -555,6 +583,9 @@ async def run_scenario(name: str) -> dict:
         await asyncio.sleep(0.05)
 
     _reset_state()
+
+    if HAS_AGENT and _agent is not None:
+        _agent.set_scenario(name)
 
     # Broadcast state reset so the dashboard clears
     await _broadcast({"event": "state_reset", "payload": {"scenario": name, "updated_at": _ts()}})
@@ -728,6 +759,20 @@ async def trigger_connection(body: ConnectionRequest) -> dict:
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+async def _broadcast_connection_suggestion() -> None:
+    """Emit connection_window + cached agent rationale after the normal demo."""
+    if HAS_CONNECTION:
+        prefs = await asyncio.to_thread(load_prefs)
+        window = await asyncio.to_thread(compute_connection_window, prefs)
+    else:
+        window = _connection_window_stub()
+
+    await _broadcast({"event": "connection_window", "payload": window})
+
+    if HAS_AGENT and _agent is not None:
+        await _agent.assess_signal("connection_window", "suggested", signal_state)
+
 
 def _connection_window_stub() -> dict:
     """Fallback when connection.py is unavailable."""

@@ -3,13 +3,17 @@
 import { useState, useCallback } from "react";
 import Header from "./components/Header";
 import FallBanner from "./components/FallBanner";
+import FloorPlan from "./components/FloorPlan";
 import LocationMap from "./components/LocationMap";
+import ConnectionCard from "./components/ConnectionCard";
 import SignalGrid from "./components/SignalGrid";
 import ScenarioPlayer from "./components/ScenarioPlayer";
-import InterventionTrigger from "./components/InterventionTrigger";
 import BottomNav from "./components/BottomNav";
 import Fab from "./components/Fab";
+import ReasoningPanel from "./components/ReasoningPanel";
+import InterventionTrigger from "./components/InterventionTrigger";
 import { useSSE } from "./lib/useSSE";
+import { apiUrl } from "./lib/api";
 
 export default function Home() {
   const sse = useSSE();
@@ -30,13 +34,12 @@ export default function Home() {
     setFabDispatching(true);
     setFabDispatched(true);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      await fetch(`${apiUrl}/trigger/intervention`, {
+      await fetch(`${apiUrl()}/trigger/intervention`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({}),
       });
-    } catch (e) {
+    } catch {
       /* overlay renders regardless */
     }
     setTimeout(() => setFabDispatching(false), 800);
@@ -46,20 +49,34 @@ export default function Home() {
 
   return (
     <>
-      <Header />
-      <main className="flex-grow px-margin-mobile py-4 pb-28 max-w-lg md:max-w-4xl mx-auto w-full space-y-lg">
+      <Header backendConnected={sse.backendConnected} />
+
+      <main className="flex-grow px-margin-mobile py-4 pb-32 max-w-7xl mx-auto w-full lg:grid lg:grid-cols-12 lg:gap-6 lg:space-y-0 space-y-4">
         {showFall && <FallBanner fall={sse.fall} onDismiss={handleDismissFall} />}
 
-        <LocationMap location={sse.location} wandering={sse.wandering} />
+        {/* Left Column */}
+        <div className="lg:col-span-3 space-y-4">
+          <LocationMap location={sse.location} wandering={sse.wandering} />
+          <FloorPlan presence={sse.presence} />
+        </div>
 
-        <SignalGrid signals={sse.signals} reasoning={sse.reasoning} />
+        {/* Center Column */}
+        <div className="lg:col-span-6 space-y-4">
+          <SignalGrid signals={sse.signals} reasoning={sse.reasoning} />
+          <ScenarioPlayer onScenarioStart={handleScenarioStart} />
+        </div>
 
-        <InterventionTrigger
-          interventionAck={sse.interventionAck}
-          scenarioActive={sse.scenarioActive}
-        />
-
-        <ScenarioPlayer onScenarioStart={handleScenarioStart} />
+        {/* Right Column */}
+        <div className="lg:col-span-3 space-y-4 flex flex-col">
+          <ConnectionCard
+            window={sse.connectionWindow}
+            connectionAck={sse.connectionAck}
+          />
+          <div className="flex-grow">
+            <ReasoningPanel reasoning={sse.reasoning} />
+          </div>
+          <InterventionTrigger interventionAck={sse.interventionAck} scenarioActive={sse.scenarioActive} />
+        </div>
       </main>
 
       <BottomNav />
@@ -68,6 +85,7 @@ export default function Home() {
         onDispatch={handleFabDispatch}
         dispatching={fabDispatching}
         dispatched={fabDispatched}
+        interventionAck={sse.interventionAck}
       />
     </>
   );

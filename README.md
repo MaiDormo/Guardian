@@ -30,7 +30,7 @@ This is a one-time download (~a few GB). Ollama must be running before you start
 
 ```bash
 cp .env.example .env
-# Edit .env if you want WhatsApp dispatch (optional — dashboard overlay works without it)
+# Edit .env if you want WeCom/WhatsApp dispatch (optional — dashboard overlay works without it)
 ```
 
 ### 3. Start everything
@@ -69,7 +69,7 @@ DEMO MACHINE (localhost)
 │   ├── /ingest                    receives sensor events (radar, GPS, voice, pill dispenser)
 │   ├── /events                    SSE stream → dashboard
 │   ├── /scenario/{name}           plays scripted demo timeline
-│   ├── /trigger/intervention      WhatsApp dispatch + overlay fallback
+│   ├── /trigger/intervention      WeCom → WhatsApp → overlay fallback
 │   └── /status                    on-device verification (badge data)
 │
 └── Next.js dashboard  :3000

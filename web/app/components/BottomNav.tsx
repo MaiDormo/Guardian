@@ -11,7 +11,7 @@ const NAV_ITEMS = [
 
 export default function BottomNav() {
   return (
-    <nav className="fixed bottom-0 w-full z-50 rounded-t-xl bg-surface/90 backdrop-blur-xl border-t border-outline-variant/30 shadow-lg flex justify-around items-center h-20 px-4 pb-4">
+    <nav className="fixed bottom-0 w-full z-50 rounded-t-xl bg-surface/90 backdrop-blur-xl border-t border-outline-variant/30 shadow-lg flex justify-around items-center h-20 px-4 pb-4 md:hidden">
       {NAV_ITEMS.map((item) => {
         const Icon = item.icon;
         return (
