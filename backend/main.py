@@ -466,6 +466,7 @@ async def _ingest_and_broadcast(event: dict) -> None:
         sse_events = await _process_event_inplace(event)
 
     had_fall = False
+    changed_signals: list[str] = []
     for sse_evt in sse_events:
         # Keep signal_state in sync regardless of which code path produced the events.
         # Without this, HAS_TANMAY=True bypasses _make_signal_sse, leaving signal_state
@@ -480,6 +481,7 @@ async def _ingest_and_broadcast(event: dict) -> None:
                     "cosine_distance": p.get("cosine_distance"),
                     "updated_at": p.get("updated_at"),
                 }
+                changed_signals.append(sig)
         elif sse_evt.get("event") == "fall_detected":
             fall_active = True
             had_fall = True
@@ -498,7 +500,9 @@ async def _ingest_and_broadcast(event: dict) -> None:
 
     # Optionally trigger agent reasoning (non-blocking)
     if HAS_AGENT and _agent and event.get("event_type") not in ("fall_detected",):
-        asyncio.create_task(_agent.maybe_assess(signal_state, _broadcast))
+        asyncio.create_task(
+            _agent.maybe_assess(signal_state, _broadcast, changed_signals)
+        )
 
 
 # ---------------------------------------------------------------------------

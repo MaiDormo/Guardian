@@ -322,6 +322,35 @@ async def test_trend_scenario_finishes_with_day7_red_signals(client):
     assert sig["routine"]["cosine_distance"] >= 0.35
 
 
+async def test_trend_scenario_emits_one_reasoning_per_signal_transition(client, monkeypatch):
+    """7-Day Trend must not duplicate voice_checkin rows in the reasoning console."""
+    import asyncio
+    import main
+    from agent import GuardianAgent
+
+    reasoning_events: list[dict] = []
+    original_broadcast = main._broadcast
+
+    async def capture_broadcast(event: dict) -> None:
+        if event.get("event") == "reasoning_update":
+            reasoning_events.append(event["payload"])
+        await original_broadcast(event)
+
+    monkeypatch.setattr(main, "_broadcast", capture_broadcast)
+    main._agent = GuardianAgent(broadcast=capture_broadcast)
+
+    r = await client.post("/scenario/trend_7day")
+    assert r.status_code == 200
+
+    if main._scenario_task:
+        await asyncio.wait_for(main._scenario_task, timeout=35.0)
+
+    voice = [e for e in reasoning_events if e.get("signal") == "voice_checkin"]
+    red_voice = [e for e in voice if "Day 7 voice check-in" in e.get("rationale", "")]
+    assert len(red_voice) == 1, f"expected one Day 7 voice row, got {len(red_voice)}"
+    assert len([e for e in reasoning_events if e.get("signal") == "took_meds"]) == 1
+
+
 async def test_normal_scenario_emits_routine_reasoning(client, monkeypatch):
     """Normal Morning must emit cached routine 0.04 reasoning for the demo console."""
     import asyncio

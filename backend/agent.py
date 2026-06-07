@@ -381,14 +381,20 @@ class GuardianAgent:
     # Called by main.py after each signal-changing ingest event
     # ------------------------------------------------------------------
 
-    async def maybe_assess(self, signal_state: dict, broadcast: Broadcast) -> None:
+    async def maybe_assess(
+        self,
+        signal_state: dict,
+        broadcast: Broadcast,
+        changed_signals: list[str] | None = None,
+    ) -> None:
         self.broadcast = broadcast
         self._signal_state = signal_state
-        # Find the most recently changed red/amber signal and assess it
-        for sig, data in signal_state.items():
-            if data["state"] in ("red", "amber") and data.get("updated_at"):
+        if not changed_signals:
+            return
+        for sig in changed_signals:
+            data = signal_state.get(sig, {})
+            if data.get("state") in ("red", "amber") and data.get("updated_at"):
                 await self.assess_signal(sig, data["state"], signal_state)
-                break  # one assessment per ingest event to avoid spam
 
     # ------------------------------------------------------------------
     # Fall interrupt — no LLM, immediate

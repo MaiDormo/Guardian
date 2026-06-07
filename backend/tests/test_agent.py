@@ -169,6 +169,37 @@ async def test_assess_signal_falls_back_when_ollama_unreachable():
     assert "Ollama not reachable" in reasoning[0]["payload"]["rationale"]
 
 
+async def test_maybe_assess_only_evaluates_changed_signals():
+    """Re-assessing the first red signal on every ingest duplicates console rows."""
+    from agent import GuardianAgent
+
+    emitted = []
+
+    async def mock_broadcast(event: dict) -> None:
+        emitted.append(event)
+
+    agent = GuardianAgent(broadcast=mock_broadcast)
+    agent.set_scenario("trend_7day")
+    signal_state = {
+        "voice_checkin": {
+            "state": "red",
+            "cosine_distance": 0.38,
+            "updated_at": "t1",
+        },
+        "location": {
+            "state": "red",
+            "cosine_distance": 0.38,
+            "updated_at": "t0",
+        },
+    }
+
+    await agent.maybe_assess(signal_state, mock_broadcast, ["location"])
+
+    reasoning = [e for e in emitted if e.get("event") == "reasoning_update"]
+    assert len(reasoning) == 1
+    assert reasoning[0]["payload"]["signal"] == "location"
+
+
 async def test_assess_signal_live_failure_falls_back_to_placeholder():
     """Live path: _live_assess exception must not crash assess_signal."""
     from agent import GuardianAgent

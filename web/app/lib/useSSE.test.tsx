@@ -172,6 +172,42 @@ describe("useSSE", () => {
     });
   });
 
+  it("upserts reasoning by signal instead of duplicating rows", async () => {
+    const { result } = renderHook(() => useSSE());
+    MockEventSource.lastInstance?.simulateOpen();
+    await waitFor(() => expect(result.current.sseHealth).toBe("connected"));
+
+    const base = {
+      cosine_distance: 0.38,
+      baseline_window_days: 14,
+      features_considered: ["speech_rate_wpm"],
+      updated_at: "2026-06-07T10:00:00Z",
+    };
+
+    MockEventSource.lastInstance?.simulateMessage({
+      event: "reasoning_update",
+      payload: {
+        signal: "voice_checkin",
+        ...base,
+        rationale: "Day 7 voice check-in: first",
+      },
+    });
+    MockEventSource.lastInstance?.simulateMessage({
+      event: "reasoning_update",
+      payload: {
+        signal: "voice_checkin",
+        ...base,
+        rationale: "Day 7 voice check-in: updated",
+        updated_at: "2026-06-07T10:01:00Z",
+      },
+    });
+
+    await waitFor(() => {
+      expect(result.current.reasoning).toHaveLength(1);
+      expect(result.current.reasoning[0]?.rationale).toContain("updated");
+    });
+  });
+
   it("appends reasoning and handles intervention_ack", async () => {
     const { result } = renderHook(() => useSSE());
     MockEventSource.lastInstance?.simulateOpen();

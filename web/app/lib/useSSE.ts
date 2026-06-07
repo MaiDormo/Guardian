@@ -74,6 +74,18 @@ function createConnectingState(): SSEState {
   };
 }
 
+/** Keep one reasoning row per signal — latest assessment wins. */
+export function upsertReasoning(
+  prev: ReasoningPayload[],
+  entry: ReasoningPayload
+): ReasoningPayload[] {
+  const idx = prev.findIndex((r) => r.signal === entry.signal);
+  if (idx === -1) return [...prev, entry].slice(-20);
+  const next = [...prev];
+  next[idx] = entry;
+  return next;
+}
+
 function signalsFromStatus(raw: Record<string, Partial<SignalStateData>>): Record<string, SignalStateData> {
   const signals = emptySignalState() as Record<string, SignalStateData>;
   for (const name of SIGNAL_NAMES) {
@@ -203,7 +215,7 @@ export function useSSE() {
               ...prev,
               backendConnected: true,
               sseHealth: "connected",
-              reasoning: [...prev.reasoning, data.payload].slice(-20),
+              reasoning: upsertReasoning(prev.reasoning, data.payload),
             }));
             break;
           }
