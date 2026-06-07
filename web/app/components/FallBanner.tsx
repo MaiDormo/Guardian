@@ -11,27 +11,31 @@ interface FallBannerProps {
 export default function FallBanner({ fall, onDismiss }: FallBannerProps) {
   if (!fall) return null;
 
+  const roomLabel = fall.room.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
   return (
-    <div className="fixed top-0 left-0 w-full z-[100] slide-down">
-      <div className="bg-error text-on-error p-4 flex items-center justify-center shadow-lg">
-        <div className="flex items-center justify-between max-w-7xl w-full mx-auto">
-          <div className="flex items-center gap-3">
-            <AlertTriangle size={28} fill="currentColor" />
-            <div className="flex flex-col">
-              <span className="text-headline-lg-mobile leading-tight font-bold">FALL DETECTED</span>
-              <span className="text-body-sm opacity-90">
-                {fall.room.replace("_", " ").replace(/\b\w/g, (c) => c.toUpperCase())}
-                {" · "}Prone · {fall.stationary_s}s stationary
-              </span>
-            </div>
+    <div className="col-span-full slide-down">
+      <div className="flex items-center justify-between rounded-xl border border-alert bg-alert/10 px-4 py-3">
+        <div className="flex items-center gap-3">
+          <AlertTriangle className="size-5 text-alert animate-pulse shrink-0" aria-hidden="true" />
+          <div>
+            <p className="text-sm font-bold uppercase tracking-wide text-alert">
+              Fall Detected · Safety-reflex tier
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {roomLabel} · {fall.posture} · {fall.stationary_s}s stationary ·{" "}
+              {(fall.confidence * 100).toFixed(0)}% confidence
+            </p>
           </div>
-          <button
-            onClick={onDismiss}
-            className="bg-on-error/20 text-on-error p-2 rounded-full hover:bg-on-error/30 transition-colors shrink-0"
-          >
-            <X size={20} />
-          </button>
         </div>
+        <button
+          type="button"
+          onClick={onDismiss}
+          aria-label="Dismiss fall alert"
+          className="rounded-lg p-1.5 text-muted-foreground hover:bg-alert/10 hover:text-alert transition-colors"
+        >
+          <X className="size-4" />
+        </button>
       </div>
     </div>
   );

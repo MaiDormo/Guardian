@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { Siren, Check, X } from "lucide-react";
 import type { InterventionAckPayload } from "../lib/types";
 
 interface InterventionTriggerProps {
@@ -10,24 +10,23 @@ interface InterventionTriggerProps {
 }
 
 export default function InterventionTrigger({ interventionAck, scenarioActive }: InterventionTriggerProps) {
+  const [spinning, setSpinning] = useState(false);
   const [showOverlay, setShowOverlay] = useState(false);
-  const [dispatching, setDispatching] = useState(false);
+  const available = interventionAck !== null || scenarioActive === "trend_7day";
 
   useEffect(() => {
-    if (scenarioActive) {
-      setShowOverlay(false);
-    }
+    if (scenarioActive) setShowOverlay(false);
   }, [scenarioActive]);
 
   useEffect(() => {
     if (interventionAck) {
-      setDispatching(false);
+      setSpinning(false);
+      setShowOverlay(true);
     }
   }, [interventionAck]);
 
   const handleDispatch = async () => {
-    setDispatching(true);
-    setShowOverlay(true);
+    setSpinning(true);
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       await fetch(`${apiUrl}/trigger/intervention`, {
@@ -35,49 +34,63 @@ export default function InterventionTrigger({ interventionAck, scenarioActive }:
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({}),
       });
-    } catch (e) {
-      /* overlay renders regardless */
+    } catch {
+      /* overlay renders regardless of network */
     }
+    setTimeout(() => setSpinning(false), 600);
   };
 
   return (
-    <div className="w-full mt-4">
+    <section aria-label="Emergency dispatch" className="flex flex-col gap-2">
       <button
+        type="button"
         onClick={handleDispatch}
-        disabled={dispatching}
-        className="w-full flex items-center justify-center gap-2 bg-error text-on-error p-4 rounded-xl text-headline-md font-bold shadow-md hover:bg-error/90 transition-all active:scale-[0.98] disabled:opacity-70"
+        disabled={spinning}
+        className={`flex w-full items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-bold uppercase tracking-wide transition-all duration-300 active:scale-[0.98] disabled:opacity-70 ${
+          available
+            ? "border-alert bg-alert text-alert-foreground hover:brightness-110"
+            : "border-border bg-card text-muted-foreground hover:border-alert/50 hover:text-card-foreground"
+        }`}
       >
-        {dispatching ? (
-          <Loader2 size={24} className="animate-spin" />
-        ) : (
-          <span className="text-[24px]">🚨</span>
-        )}
-        Dispatch Local Care
+        <Siren className={`size-5 ${spinning ? "animate-spin" : ""}`} aria-hidden="true" />
+        {spinning ? "Dispatching…" : "Dispatch Local Emergency Care"}
       </button>
 
-      {showOverlay && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm fade-in px-4">
-          <div className="slide-up p-6 rounded-2xl bg-surface border border-primary/20 shadow-2xl max-w-sm w-full">
-            <div className="flex items-center gap-4">
-              {dispatching ? (
-                <Loader2 size={28} className="text-primary animate-spin shrink-0" />
-              ) : (
-                <CheckCircle2 size={28} className="text-primary shrink-0" />
-              )}
-              <div className="flex flex-col">
-                <span className="text-headline-md text-primary font-bold">
-                  {dispatching ? "Dispatching..." : "Alert Dispatched"}
-                </span>
-                <span className="text-body-lg text-on-surface mt-1">
-                  {interventionAck
-                    ? interventionAck.message_preview
-                    : "Shenzhen Care Network notified."}
-                </span>
-              </div>
-            </div>
+      {available && !showOverlay && (
+        <p className="text-center text-[10px] font-medium uppercase tracking-wide text-alert">
+          Anomaly flagged — intervention recommended
+        </p>
+      )}
+
+      {showOverlay && interventionAck && (
+        <div
+          role="status"
+          className="flex items-start gap-3 rounded-xl border border-ok/50 bg-ok/10 p-3 slide-up"
+        >
+          <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-ok text-[oklch(0.16_0.012_250)]">
+            <Check className="size-4" aria-hidden="true" />
+          </span>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-card-foreground">
+              Alert dispatched — Shenzhen Care Network notified
+            </p>
+            <p className="mt-1 font-mono text-[11px] leading-snug text-muted-foreground">
+              {interventionAck.message_preview}
+            </p>
+            <p className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">
+              via {interventionAck.channel}
+            </p>
           </div>
+          <button
+            type="button"
+            onClick={() => setShowOverlay(false)}
+            aria-label="Dismiss confirmation"
+            className="text-muted-foreground hover:text-card-foreground transition-colors"
+          >
+            <X className="size-4" />
+          </button>
         </div>
       )}
-    </div>
+    </section>
   );
 }

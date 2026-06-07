@@ -3,90 +3,64 @@
 import { useState, useCallback } from "react";
 import Header from "./components/Header";
 import FallBanner from "./components/FallBanner";
-import FloorPlan from "./components/FloorPlan";
+import ZoneMap from "./components/ZoneMap";
 import LocationMap from "./components/LocationMap";
 import ConnectionCard from "./components/ConnectionCard";
 import SignalGrid from "./components/SignalGrid";
 import ScenarioPlayer from "./components/ScenarioPlayer";
-import BottomNav from "./components/BottomNav";
-import Fab from "./components/Fab";
 import ReasoningPanel from "./components/ReasoningPanel";
 import InterventionTrigger from "./components/InterventionTrigger";
 import { useSSE } from "./lib/useSSE";
-import { apiUrl } from "./lib/api";
 
 export default function Home() {
   const sse = useSSE();
   const [fallDismissed, setFallDismissed] = useState(false);
-  const [fabDispatching, setFabDispatching] = useState(false);
-  const [fabDispatched, setFabDispatched] = useState(false);
 
-  const handleDismissFall = useCallback(() => {
-    setFallDismissed(true);
-  }, []);
-
-  const handleScenarioStart = useCallback(() => {
-    setFallDismissed(false);
-    setFabDispatched(false);
-  }, []);
-
-  const handleFabDispatch = useCallback(async () => {
-    setFabDispatching(true);
-    setFabDispatched(true);
-    try {
-      await fetch(`${apiUrl()}/trigger/intervention`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      });
-    } catch {
-      /* overlay renders regardless */
-    }
-    setTimeout(() => setFabDispatching(false), 800);
-  }, []);
+  const handleDismissFall = useCallback(() => setFallDismissed(true), []);
+  const handleScenarioStart = useCallback(() => setFallDismissed(false), []);
 
   const showFall = sse.fall !== null && !fallDismissed;
 
   return (
-    <>
+    <main className="flex h-dvh flex-col gap-3 overflow-hidden bg-console p-3 lg:p-4">
       <Header backendConnected={sse.backendConnected} />
 
-      <main className="flex-grow px-margin-mobile py-4 pb-32 max-w-7xl mx-auto w-full lg:grid lg:grid-cols-12 lg:gap-6 lg:space-y-0 space-y-4">
-        {showFall && <FallBanner fall={sse.fall} onDismiss={handleDismissFall} />}
+      {showFall && (
+        <FallBanner fall={sse.fall} onDismiss={handleDismissFall} />
+      )}
 
-        {/* Left Column */}
-        <div className="lg:col-span-3 space-y-4">
-          <LocationMap location={sse.location} wandering={sse.wandering} />
-          <FloorPlan presence={sse.presence} />
+      {/* Three-column command center — PRD §10 */}
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-12">
+
+        {/* Left — maps */}
+        <div className="flex min-h-0 flex-col gap-3 lg:col-span-3">
+          <div className="min-h-0 flex-1">
+            <LocationMap location={sse.location} wandering={sse.wandering} />
+          </div>
+          <div className="min-h-0 flex-1">
+            <ZoneMap presence={sse.presence} />
+          </div>
         </div>
 
-        {/* Center Column */}
-        <div className="lg:col-span-6 space-y-4">
-          <SignalGrid signals={sse.signals} reasoning={sse.reasoning} />
+        {/* Centre — connection window, vital signals, demo engine */}
+        <div className="flex min-h-0 flex-col gap-3 lg:col-span-6">
+          <ConnectionCard window={sse.connectionWindow} connectionAck={sse.connectionAck} />
+          <div className="flex-1 min-h-0">
+            <SignalGrid signals={sse.signals} reasoning={sse.reasoning} />
+          </div>
           <ScenarioPlayer onScenarioStart={handleScenarioStart} />
         </div>
 
-        {/* Right Column */}
-        <div className="lg:col-span-3 space-y-4 flex flex-col">
-          <ConnectionCard
-            window={sse.connectionWindow}
-            connectionAck={sse.connectionAck}
+        {/* Right — dispatch + reasoning console */}
+        <div className="flex min-h-0 flex-col gap-3 lg:col-span-3">
+          <InterventionTrigger
+            interventionAck={sse.interventionAck}
+            scenarioActive={sse.scenarioActive}
           />
-          <div className="flex-grow">
-            <ReasoningPanel reasoning={sse.reasoning} />
-          </div>
-          <InterventionTrigger interventionAck={sse.interventionAck} scenarioActive={sse.scenarioActive} />
+          <ReasoningPanel reasoning={sse.reasoning} />
         </div>
-      </main>
 
-      <BottomNav />
-
-      <Fab
-        onDispatch={handleFabDispatch}
-        dispatching={fabDispatching}
-        dispatched={fabDispatched}
-        interventionAck={sse.interventionAck}
-      />
-    </>
+      </div>
+    </main>
   );
 }

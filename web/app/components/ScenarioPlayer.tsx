@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Play, AlertTriangle, Loader2 } from "lucide-react";
+import { Play, AlertTriangle, Loader2, RotateCcw } from "lucide-react";
 import { apiUrl } from "../lib/api";
 
 const SCENARIOS = [
   { name: "normal", label: "Normal Morning" },
   { name: "trend_7day", label: "7-Day Trend" },
-  { name: "fall", label: "Fall Override", danger: true },
+  { name: "fall", label: "Fall", danger: true },
 ];
 
 interface ScenarioPlayerProps {
@@ -22,40 +22,45 @@ export default function ScenarioPlayer({ onScenarioStart }: ScenarioPlayerProps)
     onScenarioStart();
     try {
       await fetch(`${apiUrl()}/scenario/${name}`, { method: "POST" });
-    } catch (e) {
-      /* scenario fires regardless */
+    } catch {
+      /* fires regardless */
     }
     setTimeout(() => setLoading(null), 500);
   };
 
   return (
-    <div className="flex gap-3">
-      {SCENARIOS.map((s) => {
-        const isFall = s.danger;
-        return (
+    <div className="flex flex-col gap-2">
+      <header className="flex items-center justify-between">
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          Demo Engine
+        </h2>
+        <RotateCcw className="size-3.5 text-muted-foreground/50" aria-hidden="true" />
+      </header>
+      <div className="flex gap-2">
+        {SCENARIOS.map((s) => (
           <button
             key={s.name}
             onClick={() => handleClick(s.name)}
             disabled={loading !== null}
-            className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-label-sm font-bold transition-all active:scale-95 flex-1 ${
-              isFall
-                ? "bg-error text-on-error hover:bg-error/90 shadow-sm"
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold transition-all active:scale-95 disabled:opacity-60 ${
+              s.danger
+                ? "border-alert bg-alert/10 text-alert hover:bg-alert/20"
                 : loading === s.name
-                  ? "bg-primary/20 text-primary"
-                  : "bg-primary-container text-on-primary-container hover:bg-primary-container/80"
-            } ${loading === s.name ? "opacity-70" : ""}`}
+                  ? "border-highlight/40 bg-highlight/10 text-highlight"
+                  : "border-border bg-card/60 text-card-foreground hover:border-highlight/40 hover:text-highlight"
+            }`}
           >
             {loading === s.name ? (
-              <Loader2 size={14} className="animate-spin" />
-            ) : isFall ? (
-              <AlertTriangle size={14} />
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : s.danger ? (
+              <AlertTriangle className="size-3.5" />
             ) : (
-              <Play size={14} fill="currentColor" />
+              <Play className="size-3.5" fill="currentColor" />
             )}
             {s.label}
           </button>
-        );
-      })}
+        ))}
+      </div>
     </div>
   );
 }
