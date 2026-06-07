@@ -74,7 +74,9 @@ def update_signal_state(
             hour = now.hour
 
         if room == "bedroom" and WOKE_WINDOW_START_H <= hour <= WOKE_WINDOW_END_H:
-            results.append(_set("woke_up", "green", f"Bedroom motion at {hour:02d}:xx"))
+            results.append(
+                _set("woke_up", "green", f"Bedroom motion at {ts.strftime('%H:%M')}")
+            )
 
         elif room == "kitchen":
             dwell: int = int(payload.get("dwell_s") or 0)

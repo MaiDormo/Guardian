@@ -13,6 +13,21 @@ describe("getSignalValue", () => {
     ).toBe("07:15 AM");
   });
 
+  it("formats bedroom motion time without xx placeholder", () => {
+    expect(
+      getSignalValue(
+        "woke_up",
+        makeSignal("woke_up", { reason: "Bedroom motion at 07:23" })
+      )
+    ).toBe("07:23 AM");
+    expect(
+      getSignalValue(
+        "woke_up",
+        makeSignal("woke_up", { reason: "Bedroom motion at 08:xx" })
+      )
+    ).toBe("8 AM");
+  });
+
   it("returns Awake when green with no reason", () => {
     expect(getSignalValue("woke_up", makeSignal("woke_up"))).toBe("Awake");
   });
@@ -23,14 +38,38 @@ describe("getSignalValue", () => {
     expect(getSignalValue("ate", makeSignal("ate", { reason: "Skipped dinner" }))).toBe("Dinner");
   });
 
-  it("returns Minimal for amber ate without reason", () => {
-    expect(getSignalValue("ate", makeSignal("ate", { state: "amber" }))).toBe("Minimal");
+  it("returns Light meal for amber ate without reason", () => {
+    expect(getSignalValue("ate", makeSignal("ate", { state: "amber" }))).toBe("Light meal");
   });
 
-  it("returns Missed and Late for took_meds alert states", () => {
+  it("formats kitchen dwell without truncation", () => {
+    expect(
+      getSignalValue("ate", makeSignal("ate", { reason: "Kitchen dwell 22 min" }))
+    ).toBe("22 min");
+    expect(
+      getSignalSubtitle("ate", makeSignal("ate", { reason: "Kitchen dwell 22 min" }))
+    ).toBe("22 min in kitchen");
+  });
+
+  it("formats breathing rate without truncation", () => {
+    expect(
+      getSignalValue("rested_well", makeSignal("rested_well", { reason: "Breathing rate 14 bpm" }))
+    ).toBe("14 bpm");
+    expect(
+      getSignalSubtitle("rested_well", makeSignal("rested_well", { reason: "Breathing rate 14 bpm" }))
+    ).toBe("Normal breathing rate");
+  });
+
+  it("returns friendly took_meds headlines", () => {
     expect(getSignalValue("took_meds", makeSignal("took_meds", { state: "red" }))).toBe("Missed");
     expect(getSignalValue("took_meds", makeSignal("took_meds", { state: "amber" }))).toBe("Late");
     expect(getSignalValue("took_meds", makeSignal("took_meds"))).toBe("Morning 3/3");
+    expect(
+      getSignalValue(
+        "took_meds",
+        makeSignal("took_meds", { reason: "Dispenser opened — compartment morning" })
+      )
+    ).toBe("Morning dose");
   });
 
   it("extracts sleep hours from rested_well reason", () => {
@@ -45,6 +84,14 @@ describe("getSignalValue", () => {
 
   it("returns Present for green helper_present", () => {
     expect(getSignalValue("helper_present", makeSignal("helper_present"))).toBe("Present");
+    expect(
+      getSignalValue(
+        "helper_present",
+        makeSignal("helper_present", {
+          reason: "Second presence detected in helper window",
+        })
+      )
+    ).toBe("Present");
   });
 
   it("returns Distress Unclear Clear for voice_checkin states", () => {
@@ -57,23 +104,37 @@ describe("getSignalValue", () => {
     expect(getSignalValue("voice_checkin", makeSignal("voice_checkin"))).toBe("Clear");
   });
 
-  it("returns Wandering Away Home area for location states", () => {
+  it("returns friendly location headlines for all states", () => {
     expect(getSignalValue("location", makeSignal("location", { state: "red" }))).toBe("Wandering");
     expect(getSignalValue("location", makeSignal("location", { state: "amber" }))).toBe("Away");
-    expect(getSignalValue("location", makeSignal("location"))).toBe("Home area");
+    expect(getSignalValue("location", makeSignal("location"))).toBe("Usual route");
+    expect(
+      getSignalValue(
+        "location",
+        makeSignal("location", { reason: "Density score 0.91" })
+      )
+    ).toBe("91%");
   });
 
-  it("returns Off track Drifting On track for routine states", () => {
+  it("returns friendly routine headlines ignoring jargon reasons", () => {
     expect(getSignalValue("routine", makeSignal("routine", { state: "red" }))).toBe("Off track");
     expect(getSignalValue("routine", makeSignal("routine", { state: "amber" }))).toBe("Drifting");
     expect(getSignalValue("routine", makeSignal("routine"))).toBe("On track");
+    expect(
+      getSignalValue(
+        "routine",
+        makeSignal("routine", { reason: "Cosine distance 0.04", cosine_distance: 0.04 })
+      )
+    ).toBe("On track");
   });
 
-  it("trims long reasons to 22 chars with ellipsis", () => {
-    const long = "This is a very long reason that exceeds limit";
-    expect(getSignalValue("routine", makeSignal("routine", { reason: long }))).toBe(
-      "This is a very long re…"
-    );
+  it("maps voice_checkin jargon reason to Clear headline", () => {
+    expect(
+      getSignalValue(
+        "voice_checkin",
+        makeSignal("voice_checkin", { reason: "Speech 138 wpm, clarity 0.87" })
+      )
+    ).toBe("Clear");
   });
 });
 
@@ -88,13 +149,89 @@ describe("getSignalSubtitle", () => {
     ).toBe("Slightly off usual");
   });
 
-  it("falls back to reason slice when no cosine", () => {
+  it("uses friendly ate subtitle for breakfast reasons", () => {
     expect(
       getSignalSubtitle("ate", makeSignal("ate", { reason: "Breakfast delayed significantly today" }))
-    ).toBe("Breakfast delayed significantly today");
+    ).toBe("Breakfast detected in kitchen");
   });
 
   it("returns empty when no cosine or reason", () => {
     expect(getSignalSubtitle("ate", makeSignal("ate"))).toBe("");
+  });
+
+  it("formats location subtitle from density score reason", () => {
+    expect(
+      getSignalSubtitle(
+        "location",
+        makeSignal("location", { reason: "Density score 0.91" })
+      )
+    ).toBe("91% familiar with usual route");
+  });
+
+  it("formats routine subtitle from cosine distance not jargon reason", () => {
+    expect(
+      getSignalSubtitle(
+        "routine",
+        makeSignal("routine", { reason: "Cosine distance 0.04", cosine_distance: 0.04 })
+      )
+    ).toBe("Matches usual pattern");
+  });
+
+  it("formats voice subtitle with clarity percent", () => {
+    expect(
+      getSignalSubtitle(
+        "voice_checkin",
+        makeSignal("voice_checkin", { reason: "Speech 138 wpm, clarity 0.87" })
+      )
+    ).toBe("87% voice clarity · sounds like her usual self");
+  });
+
+  it("skips technical reason fallback for jargon strings", () => {
+    expect(
+      getSignalSubtitle("location", makeSignal("location", { reason: "Density score 0.91" }))
+    ).not.toContain("Density score");
+  });
+
+  it("shows friendly helper_present subtitle without mid-word truncation", () => {
+    expect(
+      getSignalSubtitle(
+        "helper_present",
+        makeSignal("helper_present", {
+          reason: "Second presence detected in helper window",
+        })
+      )
+    ).toBe("Helper here during usual window");
+    expect(
+      getSignalSubtitle(
+        "helper_present",
+        makeSignal("helper_present", {
+          reason: "Second presence detected in helper window",
+        })
+      )
+    ).not.toMatch(/helper windo$/);
+  });
+
+  it("shows friendly took_meds subtitle without dispenser jargon", () => {
+    expect(
+      getSignalSubtitle(
+        "took_meds",
+        makeSignal("took_meds", { reason: "Dispenser opened — compartment morning" })
+      )
+    ).toBe("Morning compartment · on schedule");
+  });
+
+  it("shows friendly woke_up subtitle without xx", () => {
+    expect(
+      getSignalSubtitle(
+        "woke_up",
+        makeSignal("woke_up", { reason: "Bedroom motion at 07:23" })
+      )
+    ).toBe("Morning bedroom activity");
+    expect(
+      getSignalSubtitle(
+        "woke_up",
+        makeSignal("woke_up", { reason: "Bedroom motion at 08:xx" })
+      )
+    ).toBe("Morning bedroom activity");
   });
 });

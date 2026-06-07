@@ -67,7 +67,7 @@ export default function Home() {
   return (
     <main
       id="main-content"
-      className="flex min-h-dvh flex-col gap-3 overflow-y-auto bg-background p-3 pb-24 lg:h-dvh lg:overflow-hidden lg:pb-4 lg:p-4"
+      className="flex h-dvh max-h-dvh flex-col gap-3 overflow-y-auto bg-background p-3 pb-[calc(5rem+env(safe-area-inset-bottom,0px))] lg:p-4 lg:pb-4"
     >
       <Header
         backendConnected={sse.backendConnected}
@@ -132,46 +132,54 @@ export default function Home() {
       </div>
 
       {/* Three-column command center — PRD §10 (desktop) */}
-      <div className="hidden min-h-0 flex-1 grid-cols-12 gap-3 lg:grid">
-        <div className="flex min-h-0 flex-col gap-3 lg:col-span-3">
-          <div className="min-h-0 flex-1">
+      <div className="hidden min-h-0 flex-1 grid-cols-12 gap-3 overflow-hidden lg:grid">
+        <div className="flex min-h-0 flex-col gap-3 overflow-hidden lg:col-span-3">
+          <div className="min-h-0 flex-1 overflow-y-auto">
             <LocationMap location={sse.location} wandering={sse.wandering} />
           </div>
-          <div className="min-h-0 flex-1">
+          <div className="min-h-0 flex-1 overflow-y-auto">
             <ZoneMap presence={sse.presence} />
           </div>
         </div>
 
-        <div className="flex min-h-0 flex-col gap-3 lg:col-span-6">
-          <ConnectionCard
-          window={sse.connectionWindow}
-          connectionAck={sse.connectionAck}
-          loading={connectionLoading}
-        />
-          <div className="flex min-h-0 flex-1 flex-col">
+        <div className="flex min-h-0 flex-col gap-3 overflow-hidden lg:col-span-6">
+          <div className="shrink-0">
+            <ConnectionCard
+              window={sse.connectionWindow}
+              connectionAck={sse.connectionAck}
+              loading={connectionLoading}
+            />
+          </div>
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <SignalGrid signals={sse.signals} reasoning={sse.reasoning} />
           </div>
-          <ScenarioPlayer
-            onScenarioStart={handleScenarioStart}
-            loading={scenarioLoading}
-            onLoadingChange={setScenarioLoading}
-          />
+          <div className="shrink-0">
+            <ScenarioPlayer
+              onScenarioStart={handleScenarioStart}
+              loading={scenarioLoading}
+              onLoadingChange={setScenarioLoading}
+            />
+          </div>
         </div>
 
-        <div className="flex min-h-0 flex-col gap-3 lg:col-span-3">
-          <InterventionTrigger
-            interventionAck={sse.interventionAck}
-            scenarioActive={sse.scenarioActive}
-            interventionRecommended={interventionAvailable}
-            onDispatch={handleFabDispatch}
-            dispatching={dispatching}
-          />
-          <ReasoningPanel
-            reasoning={sse.reasoning}
-            onRunNormalMorning={runNormalMorning}
-            scenarioLoading={scenarioLoading === "normal"}
-            sseHealth={sse.sseHealth}
-          />
+        <div className="flex min-h-0 flex-col gap-3 overflow-hidden lg:col-span-3">
+          <div className="shrink-0">
+            <InterventionTrigger
+              interventionAck={sse.interventionAck}
+              scenarioActive={sse.scenarioActive}
+              interventionRecommended={interventionAvailable}
+              onDispatch={handleFabDispatch}
+              dispatching={dispatching}
+            />
+          </div>
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <ReasoningPanel
+              reasoning={sse.reasoning}
+              onRunNormalMorning={runNormalMorning}
+              scenarioLoading={scenarioLoading === "normal"}
+              sseHealth={sse.sseHealth}
+            />
+          </div>
         </div>
       </div>
 

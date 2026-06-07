@@ -10,6 +10,7 @@ import {
   formatBaselineComparison,
   formatPatternMatch,
   humanizeFeatures,
+  isTechnicalReason,
 } from "../lib/friendlyMetrics";
 import { SignalIcon } from "../lib/icons";
 
@@ -34,13 +35,21 @@ export default function SignalCard({ data, reasoning }: SignalCardProps) {
     getSignalSubtitle(data.signal as SignalName, data) ||
     formatPatternMatch(reasoning?.cosine_distance) ||
     "";
-  const hasReasoning = Boolean(reasoning?.rationale || data.reason);
+  const rawReason = data.reason || "";
+  const expandedRationale =
+    reasoning?.rationale ??
+    (rawReason && !isTechnicalReason(rawReason) && rawReason !== subtitle
+      ? rawReason
+      : null);
+  const hasReasoning = Boolean(
+    expandedRationale || reasoning || (rawReason && data.state !== "unknown")
+  );
   const rationaleId = `signal-reasoning-${data.signal}`;
 
   return (
     <article
       aria-label={`${signalLabel}: ${style.label}, ${value}`}
-      className={`flex h-full min-h-[96px] flex-col gap-1 rounded-lg border p-3 shadow-panel transition-colors duration-500 ${
+      className={`flex h-full min-h-[88px] flex-col gap-1 overflow-hidden rounded-lg border p-3 shadow-panel transition-colors duration-500 lg:min-h-[76px] ${
         data.state === "red"
           ? "border-alert/40 bg-alert/5"
           : data.state === "amber"
@@ -88,7 +97,7 @@ export default function SignalCard({ data, reasoning }: SignalCardProps) {
             onClick={() => setExpanded(!expanded)}
             aria-expanded={expanded}
             aria-controls={rationaleId}
-            className="mt-auto flex items-center gap-0.5 text-label-sm text-muted-foreground/70 transition-colors hover:text-muted-foreground"
+            className="mt-auto flex shrink-0 items-center gap-0.5 text-label-sm text-muted-foreground/70 transition-colors hover:text-muted-foreground"
           >
             {expanded ? "Hide" : "Why?"}
             {expanded ? (
@@ -99,23 +108,29 @@ export default function SignalCard({ data, reasoning }: SignalCardProps) {
           </button>
 
           {expanded && (
-            <div id={rationaleId} className="fade-in space-y-1 border-t border-border/40 pt-1.5">
-              <p className="text-pretty text-label-sm leading-relaxed text-muted-foreground">
-                {reasoning?.rationale ?? data.reason}
-              </p>
-              {reasoning && (
-                <p className="text-label-sm text-muted-foreground/70">
-                  {[
-                    formatPatternMatch(reasoning.cosine_distance),
-                    formatBaselineComparison(reasoning.baseline_window_days),
-                    reasoning.features_considered.length > 0
-                      ? `Signals checked: ${humanizeFeatures(reasoning.features_considered)}`
-                      : null,
-                  ]
-                    .filter(Boolean)
-                    .join(" · ")}
+            <div
+              id={rationaleId}
+              className="fade-in min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-y-contain border-t border-border/40 pt-1.5"
+            >
+              {expandedRationale && (
+                <p className="text-pretty text-label-sm leading-relaxed text-muted-foreground">
+                  {expandedRationale}
                 </p>
               )}
+              {(() => {
+                const meta = [
+                  formatPatternMatch(reasoning?.cosine_distance ?? data.cosine_distance),
+                  formatBaselineComparison(reasoning?.baseline_window_days),
+                  reasoning && reasoning.features_considered.length > 0
+                    ? `Signals checked: ${humanizeFeatures(reasoning.features_considered)}`
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ");
+                return meta ? (
+                  <p className="text-label-sm text-muted-foreground/70">{meta}</p>
+                ) : null;
+              })()}
             </div>
           )}
         </>

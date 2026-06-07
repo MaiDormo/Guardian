@@ -149,10 +149,15 @@ async def _process_event_inplace(event: dict) -> list[dict]:
             "event": "presence_update",
             "payload": {"room": room, "occupied": True, "fall": False, "updated_at": now},
         })
-        hour = datetime.fromisoformat(now.replace("Z", "+00:00")).hour
-        if room == "bedroom" and 5 <= hour <= 11:
-            sse_out.append(_make_signal_sse("woke_up", "green",
-                                            f"Bedroom motion at {hour:02d}:xx"))
+        dt = datetime.fromisoformat(now.replace("Z", "+00:00"))
+        if room == "bedroom" and 5 <= dt.hour <= 11:
+            sse_out.append(
+                _make_signal_sse(
+                    "woke_up",
+                    "green",
+                    f"Bedroom motion at {dt.strftime('%H:%M')}",
+                )
+            )
         elif room == "kitchen":
             dwell = payload.get("dwell_s", 0)
             if dwell >= 300:

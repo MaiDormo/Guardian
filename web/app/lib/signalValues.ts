@@ -1,9 +1,22 @@
 import type { SignalName, SignalStateData } from "./types";
-import { formatPatternMatch } from "./friendlyMetrics";
-
-function trimReason(r: string, max = 22): string {
-  return r.length > max ? r.slice(0, max) + "…" : r;
-}
+import {
+  formatAteHeadline,
+  formatAteSubtitle,
+  formatHelperPresentHeadline,
+  formatHelperPresentSubtitle,
+  formatLocationHeadline,
+  formatLocationSubtitle,
+  formatPatternMatch,
+  formatRestedWellHeadline,
+  formatRestedWellSubtitle,
+  formatRoutineHeadline,
+  formatTookMedsHeadline,
+  formatTookMedsSubtitle,
+  formatVoiceHeadline,
+  formatVoiceSubtitle,
+  formatWokeUpSubtitle,
+  formatWokeUpTime,
+} from "./friendlyMetrics";
 
 export function getSignalValue(name: SignalName, data: SignalStateData): string {
   if (data.state === "unknown") return "—";
@@ -12,58 +25,78 @@ export function getSignalValue(name: SignalName, data: SignalStateData): string 
 
   switch (name) {
     case "woke_up": {
-      const m = r.match(/(\d{1,2}:\d{2})/);
-      if (m) return m[1] + " AM";
-      if (r) return trimReason(r);
+      const time = formatWokeUpTime(r);
+      if (time) return time;
       return "Awake";
     }
-    case "ate": {
-      if (r.includes("lunch")) return "Lunch";
-      if (r.includes("dinner")) return "Dinner";
-      if (r.includes("breakfast")) return "Breakfast";
-      if (data.state === "red" || data.state === "amber") return r ? trimReason(r) : "Minimal";
-      if (r) return trimReason(r);
-      return "Breakfast";
-    }
+    case "ate":
+      return formatAteHeadline(data.state, r);
     case "took_meds":
-      if (data.state === "red") return r ? trimReason(r) : "Missed";
-      if (data.state === "amber") return r ? trimReason(r) : "Late";
-      if (r) return trimReason(r);
-      return "Morning 3/3";
-    case "rested_well": {
-      const m = r.match(/([\d.]+)\s*h/);
-      if (m) return m[1] + "h";
-      if (r) return trimReason(r);
-      return data.state === "red" ? "Poor" : "Good";
-    }
+      return formatTookMedsHeadline(data.state, r);
+    case "rested_well":
+      return formatRestedWellHeadline(data.state, r);
     case "helper_present":
-      if (data.state === "red") return r ? trimReason(r) : "None";
-      if (r) return trimReason(r);
-      return "Present";
+      return formatHelperPresentHeadline(data.state, r);
     case "voice_checkin":
-      if (data.state === "red") return r ? trimReason(r) : "Distress";
-      if (data.state === "amber") return r ? trimReason(r) : "Unclear";
-      if (r) return trimReason(r);
-      return "Clear";
+      return formatVoiceHeadline(data.state);
     case "location":
-      if (data.state === "red") return r ? trimReason(r) : "Wandering";
-      if (data.state === "amber") return r ? trimReason(r) : "Away";
-      if (r) return trimReason(r);
-      return "Home area";
+      return formatLocationHeadline(data.state, r);
     case "routine":
-      if (data.state === "red") return r ? trimReason(r) : "Off track";
-      if (data.state === "amber") return r ? trimReason(r) : "Drifting";
-      if (r) return trimReason(r);
-      return "On track";
+      return formatRoutineHeadline(data.state);
     default:
-      return r ? trimReason(r) : "—";
+      return "—";
   }
 }
 
 export function getSignalSubtitle(name: SignalName, data: SignalStateData): string {
   if (data.state === "unknown") return "";
-  const pattern = formatPatternMatch(data.cosine_distance);
-  if (pattern) return pattern;
-  if (data.reason) return data.reason.slice(0, 40);
-  return "";
+
+  const r = data.reason || "";
+
+  switch (name) {
+    case "location":
+      return formatLocationSubtitle(data.state, r);
+    case "routine": {
+      const pattern = formatPatternMatch(data.cosine_distance);
+      return pattern ?? "";
+    }
+    case "voice_checkin": {
+      const subtitle = formatVoiceSubtitle(data.state, r);
+      return subtitle ?? "";
+    }
+    case "woke_up": {
+      if (!r) return "";
+      const pattern = formatPatternMatch(data.cosine_distance);
+      if (pattern) return pattern;
+      return formatWokeUpSubtitle(r);
+    }
+    case "ate": {
+      const subtitle = formatAteSubtitle(data.state, r);
+      if (subtitle) return subtitle;
+      const pattern = formatPatternMatch(data.cosine_distance);
+      return pattern ?? "";
+    }
+    case "rested_well": {
+      const subtitle = formatRestedWellSubtitle(data.state, r);
+      if (subtitle) return subtitle;
+      const pattern = formatPatternMatch(data.cosine_distance);
+      return pattern ?? "";
+    }
+    case "took_meds": {
+      const subtitle = formatTookMedsSubtitle(data.state, r);
+      if (subtitle) return subtitle;
+      const pattern = formatPatternMatch(data.cosine_distance);
+      return pattern ?? "";
+    }
+    case "helper_present": {
+      const subtitle = formatHelperPresentSubtitle(data.state, r);
+      if (subtitle) return subtitle;
+      const pattern = formatPatternMatch(data.cosine_distance);
+      return pattern ?? "";
+    }
+    default: {
+      const pattern = formatPatternMatch(data.cosine_distance);
+      return pattern ?? "";
+    }
+  }
 }

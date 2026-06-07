@@ -27,7 +27,7 @@ export default function SignalGrid({ signals, reasoning }: SignalGridProps) {
           8 daily signals
         </span>
       </header>
-      <div className="grid min-h-0 flex-1 auto-rows-fr grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-4">
+      <div className="grid min-h-0 flex-1 auto-rows-fr grid-cols-2 gap-2 overflow-y-auto overscroll-y-contain md:grid-cols-3 lg:grid-cols-4">
         {SIGNAL_NAMES.map((name) => (
           <SignalCard
             key={name}

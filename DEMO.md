@@ -169,6 +169,30 @@ These are the automatic UI events behind each act — use for rehearsal, not for
 
 ---
 
+## Reasoning Console — gesture cues (not spoken)
+
+The right column shows a **simplified demo log** (dot + bold stat + short rationale). Point at it briefly — do not read it aloud.
+
+| Act | ~Time | Gesture |
+|-----|-------|---------|
+| 1 Normal Morning | ~11s | **Point right:** "See the green log — 4% off her usual morning routine" |
+| 2 7-Day Trend | ~6s | **Point right:** amber dot on voice entry while narrating Day 5 |
+| 2 7-Day Trend | ~11s | **Point right:** red entries as four signal cards slam red |
+| 4 Fall Override | instant | Console shows priority interrupt (agent loop bypassed) |
+| 5 Close | — | Console footer reads **On-device reasoning**; header badge shows on-device |
+
+Full technical XML view (for Devpost screenshots only): rebuild web with `NEXT_PUBLIC_REASONING_DEMO_MODE=false`.
+
+---
+
+## Q&A cheat sheet (not spoken)
+
+- **Scenarios** are choreographed timelines; reasoning is **cached Gemma 4 output** served locally (see `backend/agent.py`).
+- **Signal colors** come from deterministic `signals.py`, not the LLM.
+- **"Is this scripted?"** → "The sensor input is simulated; the pipeline, baseline math, and on-device inference are real. Happy to show airplane mode." (See `HONESTY.md`.)
+
+---
+
 ## Expected signal states (ground truth)
 
 | Signal | Normal Morning | 7-Day Trend (Day 7) | Fall Override |
