@@ -9,7 +9,7 @@ Zero cloud egress: Gemma 4 (Ollama) + SQLite + sqlite-vec all run on the family'
 
 | Component | Path | Owner | Status |
 |---|---|---|---|
-| FastAPI backend + SSE | `backend/main.py` | Elia | ✅ 771 ln, 8 routes |
+| FastAPI backend + SSE | `backend/main.py` | Elia | ✅ 804 ln, 8 routes |
 | Mock SSE server | `backend/mock_server.py` | Elia | ✅ 313 ln |
 | Gemma 4 agent | `backend/agent.py` | Elia | ✅ 409 ln |
 | Connection window inference | `backend/connection.py` | Elia | ✅ 340 ln (new feature) |
@@ -22,7 +22,7 @@ Zero cloud egress: Gemma 4 (Ollama) + SQLite + sqlite-vec all run on the family'
 | Config constants | `backend/config.py` | Shared | ✅ 53 ln |
 | Edge normalisation | `backend/edge_processor.py` | Tanmay | ✅ 80 ln |
 | Seed (30-day baseline) | `backend/seed.py` | Tanmay | ✅ 241 ln |
-| Next.js dashboard | `web/` | Mar + Elia | ✅ 13 components, fully wired to SSE |
+| Next.js dashboard | `web/` | Mar + Elia | ✅ 12 active components (ZoneMap replaces FloorPlan; BottomNav/Fab dormant), fully wired to SSE |
 | Voice module | `backend/voice_checkin.py` | Eleoner | ⛔ not started |
 
 **Backend: ~2,800 ln production code. Tests: ~1,580 ln (5 test files, 115 tests).**
@@ -44,7 +44,7 @@ radar_simulator.py                                                   Next.js App
                                   │ connection.py            │        │ ReasoningPanel
                                   │   GET /api/connection-  │        │ InterventionTrigger
                                   │       window            │        │ ScenarioPlayer
-                                  └─────────────────────────┘        │ Fab + BottomNav
+                                  └─────────────────────────┘        │ ZoneMap + ConnectionCard
                                            │
                                      guardian.db (SQLite + sqlite-vec)
                                      Ollama host (gemma4:e4b + nomic-embed-text)
