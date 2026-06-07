@@ -4,8 +4,8 @@ replay.py — PRD §7 32-cell accuracy gate (8 signals × 4 scenarios).
 Drives ingestion.process_event synchronously. Pass threshold: ≥26/32 correct.
 Fall scored separately (not in this matrix).
 
-GAP/ALLOWANCE — four unreachable amber cells (no amber path in signals.py for woke_up):
-  trend_7day: woke_up, took_meds, rested_well
+GAP/ALLOWANCE — three unreachable amber cells (no amber path yet for woke_up/rested_well):
+  trend_7day: woke_up, rested_well
   voice_distress: woke_up
 These are scored as real misses, never faked.
 """
@@ -67,7 +67,6 @@ GROUND_TRUTH: dict[tuple[str, str], str] = {
 
 UNREACHABLE_AMBER: set[tuple[str, str]] = {
     ("trend_7day", "woke_up"),
-    ("trend_7day", "took_meds"),
     ("trend_7day", "rested_well"),
     ("voice_distress", "woke_up"),
 }

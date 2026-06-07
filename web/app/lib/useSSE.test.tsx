@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { API } from "../../tests/mocks/handlers";
 import { server } from "../../tests/mocks/server";
 import { MockEventSource } from "../../tests/mocks/mock-event-source";
-import { useSSE } from "./useSSE";
+import { DEMO_BASELINE_SIGNALS, DEMO_CONNECTION_WINDOW, useSSE } from "./useSSE";
 import { makeSignal } from "../../tests/fixtures";
 
 describe("useSSE", () => {
@@ -17,16 +17,35 @@ describe("useSSE", () => {
     vi.useRealTimers();
   });
 
-  it("starts in reconnecting state with connectionWindowLoading true", () => {
+  it("starts in reconnecting state with demo connection window preloaded", async () => {
     const { result } = renderHook(() => useSSE());
 
     expect(result.current.sseHealth).toBe("reconnecting");
-    expect(result.current.connectionWindowLoading).toBe(true);
-    expect(MockEventSource.lastInstance?.url).toBe(`${API}/events`);
+    expect(result.current.connectionWindow).toEqual(DEMO_CONNECTION_WINDOW);
+    expect(result.current.connectionWindowLoading).toBe(false);
+
+    await waitFor(() => {
+      expect(MockEventSource.lastInstance?.url).toBe(`${API}/events`);
+    });
+  });
+
+  it("shows 15:00-16:00 on mount without waiting for fetch", () => {
+    const { result } = renderHook(() => useSSE());
+
+    expect(result.current.connectionWindow?.best_window).toBe("15:00-16:00");
+    expect(result.current.connectionWindowLoading).toBe(false);
+  });
+
+  it("seeds demo baseline greens on mount instead of awaiting baseline", () => {
+    const { result } = renderHook(() => useSSE());
+
+    expect(result.current.signals).toEqual(DEMO_BASELINE_SIGNALS);
+    expect(result.current.reasoning).toEqual([]);
   });
 
   it("hydrates from backend once on SSE open", async () => {
     const { result } = renderHook(() => useSSE());
+    await waitFor(() => expect(MockEventSource.lastInstance).toBeDefined());
     MockEventSource.lastInstance?.simulateOpen();
 
     await waitFor(() => {
@@ -42,6 +61,7 @@ describe("useSSE", () => {
 
   it("applies signal_update SSE events", async () => {
     const { result } = renderHook(() => useSSE());
+    await waitFor(() => expect(MockEventSource.lastInstance).toBeDefined());
     MockEventSource.lastInstance?.simulateOpen();
 
     await waitFor(() => expect(result.current.sseHealth).toBe("connected"));
@@ -58,6 +78,7 @@ describe("useSSE", () => {
 
   it("applies connection_window SSE event and clears loading", async () => {
     const { result } = renderHook(() => useSSE());
+    await waitFor(() => expect(MockEventSource.lastInstance).toBeDefined());
     MockEventSource.lastInstance?.simulateOpen();
 
     await waitFor(() => expect(result.current.sseHealth).toBe("connected"));
@@ -88,25 +109,28 @@ describe("useSSE", () => {
 
   it("resets state on state_reset preserving connection window", async () => {
     const { result } = renderHook(() => useSSE());
+    await waitFor(() => expect(MockEventSource.lastInstance).toBeDefined());
     MockEventSource.lastInstance?.simulateOpen();
 
     await waitFor(() => expect(result.current.connectionWindow).not.toBeNull());
 
     MockEventSource.lastInstance?.simulateMessage({
       event: "state_reset",
-      payload: { scenario: "normal", updated_at: "2026-06-07T08:00:00Z" },
+      payload: { scenario: "trend_7day", updated_at: "2026-06-07T08:00:00Z" },
     });
 
     await waitFor(() => {
-      expect(result.current.scenarioActive).toBe("normal");
+      expect(result.current.scenarioActive).toBe("trend_7day");
       expect(result.current.signals.woke_up?.state).toBe("unknown");
       expect(result.current.connectionWindow?.best_window).toBe("2:00 – 3:30 PM");
     });
   });
 
   it("marks backend disconnected on SSE error", async () => {
-    vi.useFakeTimers();
     const { result } = renderHook(() => useSSE());
+    await waitFor(() => expect(MockEventSource.lastInstance).toBeDefined());
+
+    vi.useFakeTimers();
     MockEventSource.lastInstance?.simulateError();
 
     await vi.waitFor(() => {
@@ -124,6 +148,7 @@ describe("useSSE", () => {
     server.use(http.get(`${API}/status`, () => HttpResponse.error()));
 
     const { result } = renderHook(() => useSSE());
+    await waitFor(() => expect(MockEventSource.lastInstance).toBeDefined());
     MockEventSource.lastInstance?.simulateOpen();
 
     await waitFor(() => {
@@ -133,6 +158,7 @@ describe("useSSE", () => {
 
   it("applies presence_update fall_detected and wandering_detected events", async () => {
     const { result } = renderHook(() => useSSE());
+    await waitFor(() => expect(MockEventSource.lastInstance).toBeDefined());
     MockEventSource.lastInstance?.simulateOpen();
     await waitFor(() => expect(result.current.sseHealth).toBe("connected"));
 
@@ -174,6 +200,7 @@ describe("useSSE", () => {
 
   it("upserts reasoning by signal instead of duplicating rows", async () => {
     const { result } = renderHook(() => useSSE());
+    await waitFor(() => expect(MockEventSource.lastInstance).toBeDefined());
     MockEventSource.lastInstance?.simulateOpen();
     await waitFor(() => expect(result.current.sseHealth).toBe("connected"));
 
@@ -210,6 +237,7 @@ describe("useSSE", () => {
 
   it("appends reasoning and handles intervention_ack", async () => {
     const { result } = renderHook(() => useSSE());
+    await waitFor(() => expect(MockEventSource.lastInstance).toBeDefined());
     MockEventSource.lastInstance?.simulateOpen();
     await waitFor(() => expect(result.current.sseHealth).toBe("connected"));
 

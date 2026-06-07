@@ -28,7 +28,7 @@ docker compose up --build -d
 - [ ] Run **Normal Morning** once before judges arrive to confirm green baseline
 - [ ] Close extra tabs; mute notifications except demo phone
 
-**Critical timing:** Press **7-Day Trend** and **keep talking** — amber lands at ~6s, four reds at ~11s. Do **not** press **Dispatch** until those reds appear and the button highlights.
+**Critical timing:** Press **7-Day Trend** and **keep talking** — amber lands at ~3s, four reds at ~15s (**11s narration beat** between amber and red). Do **not** press **Dispatch** until those reds appear and the button highlights.
 
 ---
 
@@ -57,8 +57,8 @@ docker compose up --build -d
 
 | Button | What it does | Wall time |
 |--------|--------------|-----------|
-| **▶ Normal Morning** | Resets state, plays morning timeline. Zone map: bedroom → bathroom → kitchen. Woke Up / Ate / Took Meds green. Connection Window loads. | ~11s |
-| **▶ 7-Day Trend** | 7-day drift compressed for stage. Day 5 (~6s): voice amber. Day 7 (~11s): Voice, Location, Routine, Took Meds red. Dispatch button highlights. | ~12s |
+| **▶ Normal Morning** | Pre-loads green baseline instantly; zone map animates bedroom → bathroom → kitchen. Connection Window shows **15:00–16:00** immediately. Reasoning at ~11s. | ~11s |
+| **▶ 7-Day Trend** | 7-day drift compressed for stage. Day 5 (~3s): voice amber. Day 7 (~15s): Voice, Location, Routine, Took Meds red. Dispatch button highlights. | ~16s |
 | **▶ Fall Override** | Hard cut — bathroom fall, banner, chime, auto-dispatch. Safety-reflex tier bypasses agent loop for the alert itself; console still logs priority interrupt. | Instant |
 | **Dispatch Local Emergency Care** | WeCom → WhatsApp → overlay fallback. Always shows success overlay. | <1s |
 | **Send call nudge** (Connection Window) | Optional — gentle call reminder. Not part of main script. | — |
@@ -73,9 +73,9 @@ docker compose up --build -d
 
 **Watch:**
 
-- Abstract Zone Map: bedroom → bathroom → kitchen pulse blue
-- Woke Up, Ate, Took Meds cards turn green
-- Optimal Connection Window appears: **15:00–16:00**
+- Vital Signals: all eight cards **green immediately** (pre-loaded 30-day baseline)
+- Abstract Zone Map: bedroom → bathroom → kitchen pulse blue over ~11s
+- Optimal Connection Window: **15:00–16:00** from first paint (no snap)
 
 **Say:**
 
@@ -91,7 +91,7 @@ docker compose up --build -d
 
 **Press:** ▶ **7-Day Trend**
 
-**Watch & Pace:** Scenario runs **~12 seconds** — narrate continuously; the UI keeps pace. Point at the amber card when you say "flagged amber here" (~6s). Four cards slam red as you reach "Day 7" (~11s).
+**Watch & Pace:** Scenario runs **~16 seconds** — narrate continuously; the UI keeps pace. Point at the amber card when you say "flagged amber here" (~3s). You have **~11 seconds** before four cards slam red as you reach "Day 7" (~15s).
 
 **Say:**
 
@@ -158,10 +158,11 @@ These are the automatic UI events behind each act — use for rehearsal, not for
 
 | Act | ~Time | Automatic UI event |
 |-----|-------|-------------------|
-| 1 | 0–11s | Zone map animates bedroom → bathroom → kitchen; signal cards green |
-| 1 | ~11s | Connection Window card loads `15:00-16:00`; Reasoning Console logs routine baseline (*"Baseline deviation: 0.04"*) |
-| 2 | ~6s | Voice Check-In card turns **amber** (clarity 0.68) — point here while narrating Day 5 |
-| 2 | ~11s | Voice, Location, Routine, Took Meds turn **red**; Dispatch button highlights; **Daily Route Check** (left): static red path draws once, "34 min outside" chip, footer **9% match** (not Learning) |
+| 1 | 0s | All eight signal cards **green**; Connection Window shows `15:00-16:00` |
+| 1 | 0–11s | Zone map animates bedroom → bathroom → kitchen |
+| 1 | ~11s | Reasoning Console logs routine baseline (*"Baseline deviation: 0.04"*) |
+| 2 | ~3s | Voice Check-In card turns **amber** (clarity 0.68) — point here while narrating Day 5 |
+| 2 | ~15s | Voice, Location, Routine, Took Meds turn **red**; Dispatch button highlights; **Daily Route Check** (left): static red path draws once, "34 min outside" chip, footer **9% match** (not Learning) |
 | 2 | on dispatch | Overlay: *Alert dispatched — Shenzhen Care Network notified* |
 | 4 | instant | Fall banner + chime; auto-dispatch; Reasoning Console: *Priority interrupt — … bypassed the agent loop by design* |
 | 5 | — | Airplane Mode off/on: local SSE to `localhost:8000` stays connected — proves on-device, no cloud |
@@ -175,8 +176,8 @@ The right column shows a **simplified demo log** (dot + bold stat + short ration
 | Act | ~Time | Gesture |
 |-----|-------|---------|
 | 1 Normal Morning | ~11s | **Point right:** "See the green log — 4% off her usual morning routine" |
-| 2 7-Day Trend | ~6s | **Point right:** amber dot on voice entry while narrating Day 5 |
-| 2 7-Day Trend | ~11s | **Point right:** red entries as four signal cards slam red |
+| 2 7-Day Trend | ~3s | **Point right:** amber dot on voice entry while narrating Day 5 |
+| 2 7-Day Trend | ~15s | **Point right:** red entries as four signal cards slam red |
 | 4 Fall Override | instant | Console shows priority interrupt (agent loop bypassed) |
 | 5 Close | — | Console footer reads **On-device reasoning**; header badge shows on-device |
 
@@ -215,8 +216,8 @@ Full technical XML view (for Devpost screenshots only): rebuild web with `NEXT_P
 | Problem | Fix |
 |---------|-----|
 | Badge says **Stream offline** or **Reconnecting…** | `docker compose ps` — ensure backend healthy. Refresh page. |
-| 7-Day Trend stuck on green | Wait **~12s** while narrating. Re-press button (replay clears dedup automatically). |
-| Dispatch button never highlights | Wait until all four crisis signals are red (~11s). Do not rely on scenario name alone. |
+| 7-Day Trend stuck on green | Wait **~16s** while narrating. Re-press button (replay clears dedup automatically). |
+| Dispatch button never highlights | Wait until all four crisis signals are red (~15s). Do not rely on scenario name alone. |
 | No reasoning in console | Start `ollama serve` — cached reasoning still serves scripted scenarios without it. |
 | No phone chime on dispatch | Set `WECOM_WEBHOOK_URL` in `.env`, rebuild backend. Overlay always works without it. |
 | Layout looks stacked | Widen browser to ≥1024px or fullscreen. |
@@ -230,9 +231,9 @@ Full technical XML view (for Devpost screenshots only): rebuild web with `NEXT_P
 cd backend && python3 -m pytest -q
 cd ../web && npm test && npm run build
 docker compose up --build -d
-curl -X POST http://localhost:8000/scenario/normal && sleep 12    # connection window + 0.04 console
-curl -X POST http://localhost:8000/scenario/trend_7day && sleep 7   # voice amber ~6s
-curl -s http://localhost:8000/status | python3 -c "import sys,json; s=json.load(sys.stdin)['signals']; print('reds:', [k for k,v in s.items() if v['state']=='red'])"  # after ~12s
+curl -X POST http://localhost:8000/scenario/normal && sleep 12    # 0.04 console at ~11s
+curl -X POST http://localhost:8000/scenario/trend_7day && sleep 4   # voice amber ~3s
+curl -s http://localhost:8000/status | python3 -c "import sys,json; s=json.load(sys.stdin)['signals']; print('reds:', [k for k,v in s.items() if v['state']=='red'])"  # after ~16s
 curl -X POST http://localhost:8000/scenario/fall                  # priority interrupt console
 ```
 
@@ -241,6 +242,6 @@ curl -X POST http://localhost:8000/scenario/fall                  # priority int
 ## Quick re-run order
 
 1. Normal Morning (~11s)
-2. 7-Day Trend (~12s) → narrate through → Dispatch when reds land
+2. 7-Day Trend (~16s) → narrate through → Dispatch when reds land (~15s)
 3. Fall Override (instant)
 4. Airplane Mode toggle (Act 5 close)

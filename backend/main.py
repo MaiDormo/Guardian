@@ -91,6 +91,18 @@ def _empty_state() -> dict:
 signal_state: dict[str, dict] = _empty_state()
 fall_active: bool = False
 
+# End-state of Normal Morning — pre-loaded 30-day baseline for Act 1 instant greens
+_NORMAL_BASELINE: list[tuple[str, str, str, float | None]] = [
+    ("woke_up", "green", "Morning presence detected in bedroom window", None),
+    ("ate", "green", "Kitchen dwell 22 min — within baseline", None),
+    ("took_meds", "green", "Dispenser opened — compartment morning", None),
+    ("rested_well", "green", "Breathing rate 14 bpm — within baseline", None),
+    ("voice_checkin", "green", "Speech 138 wpm, clarity 0.87", None),
+    ("helper_present", "green", "Second presence detected in helper window", None),
+    ("location", "green", "Density score 0.91", None),
+    ("routine", "green", "Cosine distance 0.04", 0.04),
+]
+
 # ---------------------------------------------------------------------------
 # SSE client registry
 # ---------------------------------------------------------------------------
@@ -174,12 +186,26 @@ async def _process_event_inplace(event: dict) -> list[dict]:
         })
 
     elif et == "dispenser_opened":
-        sse_out.append(_make_signal_sse("took_meds", "green",
-                                        f"Dispenser opened — compartment {payload.get('compartment')}"))
+        from config import TOOK_MEDS_DEADLINE_H, TOOK_MEDS_RED_OVERDUE_MIN  # noqa: PLC0415
+        delta = int(payload.get("delta_minutes") or 0)
+        try:
+            open_hour = datetime.fromisoformat(now.replace("Z", "+00:00")).hour
+        except Exception:
+            open_hour = 8
+        if open_hour >= TOOK_MEDS_DEADLINE_H or delta > TOOK_MEDS_RED_OVERDUE_MIN:
+            sse_out.append(_make_signal_sse(
+                "took_meds", "amber", f"Late dose — {delta} min after window"))
+        else:
+            sse_out.append(_make_signal_sse(
+                "took_meds", "green",
+                f"Dispenser opened — compartment {payload.get('compartment')}"))
 
     elif et == "dispenser_missed":
-        sse_out.append(_make_signal_sse("took_meds", "red",
-                                        f"Dispenser missed — {payload.get('minutes_overdue', 0)} min overdue"))
+        from config import TOOK_MEDS_RED_OVERDUE_MIN  # noqa: PLC0415
+        minutes = int(payload.get("minutes_overdue") or 0)
+        state = "red" if minutes > TOOK_MEDS_RED_OVERDUE_MIN else "amber"
+        sse_out.append(_make_signal_sse(
+            "took_meds", state, f"Dispenser missed — {minutes} min overdue"))
 
     elif et == "breathing_update":
         state = "green" if payload.get("in_baseline", True) else "amber"
@@ -305,71 +331,71 @@ SCENARIO_EVENTS: dict[str, list[tuple[float, dict]]] = {
                 "timestamp": "", "confidence": 1.0,
                 "payload": {"cosine_distance": 0.04}}),
     ],
-    # 7-Day Trend — ~12s wall time for stage (amber ~6s, Day 7 reds ~11s)
+    # 7-Day Trend — ~16s wall time for stage (amber ~3s, Day 7 reds ~15s, 11s narration beat)
     "trend_7day": [
-        # Days 1-2: normal baseline (0-3s)
+        # Days 1-2: normal baseline (0-2s)
         (0.0,  {"event_type": "presence_detected", "source": "mmwave_ld2410",
                 "room": "bedroom", "timestamp": "", "confidence": 0.97,
                 "payload": {"targets": 1, "dwell_s": 0, "motion": "moving"}}),
-        (0.8,  {"event_type": "presence_detected", "source": "mmwave_ld2410",
+        (0.4,  {"event_type": "presence_detected", "source": "mmwave_ld2410",
                 "room": "kitchen", "timestamp": "", "confidence": 0.97,
                 "payload": {"targets": 1, "dwell_s": 1320, "motion": "stationary"}}),
-        (1.6,  {"event_type": "dispenser_opened", "source": "pill_dispenser",
+        (0.8,  {"event_type": "dispenser_opened", "source": "pill_dispenser",
                 "timestamp": "", "confidence": 1.0,
                 "payload": {"compartment": "morning", "expected_window_start": "08:00",
                             "delta_minutes": 11}}),
-        (2.4,  {"event_type": "voice_checkin_completed", "source": "voice_system",
+        (1.2,  {"event_type": "voice_checkin_completed", "source": "voice_system",
                 "timestamp": "", "confidence": 0.92,
                 "payload": {"speech_rate_wpm": 141, "clarity_score": 0.88,
                             "sentiment": "positive", "confusion_markers": False,
                             "response_latency_s": 1.1, "duration_s": 145}}),
-        (3.2,  {"event_type": "cosine_update", "source": "baseline",
+        (1.6,  {"event_type": "cosine_update", "source": "baseline",
                 "timestamp": "", "confidence": 1.0,
                 "payload": {"cosine_distance": 0.04}}),
-        # Days 3-4: subtle drift (4-5s)
-        (4.0,  {"event_type": "presence_detected", "source": "mmwave_ld2410",
+        # Days 3-4: subtle drift (2-2.5s)
+        (2.0,  {"event_type": "presence_detected", "source": "mmwave_ld2410",
                 "room": "kitchen", "timestamp": "", "confidence": 0.97,
                 "payload": {"targets": 1, "dwell_s": 480, "motion": "stationary"}}),
-        (4.8,  {"event_type": "cosine_update", "source": "baseline",
+        (2.4,  {"event_type": "cosine_update", "source": "baseline",
                 "timestamp": "", "confidence": 1.0,
                 "payload": {"cosine_distance": 0.08}}),
-        # Day 5: amber — voice clarity drops (~6s)
-        (5.5,  {"event_type": "presence_detected", "source": "mmwave_ld2410",
+        # Day 5: amber — voice clarity drops (~3s)
+        (2.8,  {"event_type": "presence_detected", "source": "mmwave_ld2410",
                 "room": "kitchen", "timestamp": "", "confidence": 0.97,
                 "payload": {"targets": 1, "dwell_s": 300, "motion": "stationary"}}),
-        (6.2,  {"event_type": "voice_checkin_completed", "source": "voice_system",
+        (3.0,  {"event_type": "voice_checkin_completed", "source": "voice_system",
                 "timestamp": "", "confidence": 0.88,
                 "payload": {"speech_rate_wpm": 105, "clarity_score": 0.68,
                             "sentiment": "neutral", "confusion_markers": False,
                             "response_latency_s": 2.9, "duration_s": 110}}),
-        (6.8,  {"event_type": "cosine_update", "source": "baseline",
+        (3.5,  {"event_type": "cosine_update", "source": "baseline",
                 "timestamp": "", "confidence": 1.0,
                 "payload": {"cosine_distance": 0.17}}),
-        # Day 7: crisis — voice distress + wandering + missed dose (~11s)
-        (10.0, {"event_type": "voice_distress_detected", "source": "voice_system",
+        # Day 7: crisis — voice distress + wandering + missed dose (~15s)
+        (14.0, {"event_type": "voice_distress_detected", "source": "voice_system",
                 "timestamp": "", "confidence": 0.83,
                 "payload": {"speech_rate_wpm": 89, "clarity_score": 0.61,
                             "sentiment": "confused", "confusion_markers": True,
                             "response_latency_s": 4.7,
                             "baseline_deviation_cosine": 0.38}}),
-        (10.5, {"event_type": "wandering_detected", "source": "gps_tracker",
+        (14.5, {"event_type": "wandering_detected", "source": "gps_tracker",
                 "timestamp": "", "confidence": 0.88,
                 "payload": {"lat": 22.5512, "lng": 114.0701,
                             "distance_from_home_m": 1800,
                             "trajectory_density_score": 0.09,
                             "baseline_cluster_match": False,
                             "minutes_outside_baseline_footprint": 34}}),
-        (10.5, {"event_type": "location_update", "source": "gps_tracker",
+        (14.5, {"event_type": "location_update", "source": "gps_tracker",
                 "timestamp": "", "confidence": 0.88,
                 "payload": {"lat": 22.5512, "lng": 114.0701,
                             "distance_from_home_m": 1800,
                             "trajectory_density_score": 0.09,
                             "baseline_cluster_match": False}}),
-        (11.0, {"event_type": "dispenser_missed", "source": "pill_dispenser",
+        (15.0, {"event_type": "dispenser_missed", "source": "pill_dispenser",
                 "timestamp": "", "confidence": 1.0,
                 "payload": {"compartment": "morning",
-                            "window_closed_at": "11:00", "minutes_overdue": 120}}),
-        (11.5, {"event_type": "cosine_update", "source": "baseline",
+                            "window_closed_at": "11:00", "minutes_overdue": 121}}),
+        (15.5, {"event_type": "cosine_update", "source": "baseline",
                 "timestamp": "", "confidence": 1.0,
                 "payload": {"cosine_distance": 0.38}}),
     ],
@@ -421,6 +447,22 @@ def _reset_state() -> None:
             _ingest_reset()
         except Exception as exc:
             log.warning("ingestion.reset_state failed (%s)", exc)
+
+
+async def _broadcast_normal_baseline() -> None:
+    """Pre-load Act 1 green baseline instantly; zone map still animates over ~11s."""
+    for signal, state, reason, cosine in _NORMAL_BASELINE:
+        await _broadcast(_make_signal_sse(signal, state, reason, cosine))
+
+
+async def _broadcast_connection_window_early() -> None:
+    """Connection window at Normal Morning start — no agent assess (reasoning at ~11s)."""
+    if HAS_CONNECTION:
+        prefs = await asyncio.to_thread(load_prefs)
+        window = await asyncio.to_thread(compute_connection_window, prefs)
+    else:
+        window = _connection_window_stub()
+    await _broadcast({"event": "connection_window", "payload": window})
 
 
 # ---------------------------------------------------------------------------
@@ -706,6 +748,10 @@ async def run_scenario(name: str) -> dict:
 
     # Broadcast state reset so the dashboard clears
     await _broadcast({"event": "state_reset", "payload": {"scenario": name, "updated_at": _ts()}})
+
+    if name == "normal":
+        await _broadcast_normal_baseline()
+        await _broadcast_connection_window_early()
 
     _scenario_task = asyncio.create_task(_run_scenario(name))
     return {"status": "started", "scenario": name}

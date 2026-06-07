@@ -231,18 +231,67 @@ async def test_scenario_invalid_name_returns_400(client):
 
 
 async def test_scenario_resets_all_signals_to_unknown(client):
-    """PRD § 7: scenario reset must clear previous state."""
+    """PRD § 7: scenario reset must clear previous state before timeline events."""
     import main
     # Dirty signal state
     for sig in main.SIGNALS:
         main.signal_state[sig]["state"] = "red"
 
-    await client.post("/scenario/normal")
+    await client.post("/scenario/trend_7day")
 
     for sig in main.SIGNALS:
         assert main.signal_state[sig]["state"] == "unknown", (
-            f"Signal '{sig}' was not reset after /scenario/normal"
+            f"Signal '{sig}' was not reset after /scenario/trend_7day"
         )
+
+
+async def test_normal_preloads_green_baseline_immediately(client):
+    """Normal Morning must show green vital cards instantly (pre-loaded baseline)."""
+    import main
+
+    r = await client.post("/scenario/normal")
+    assert r.status_code == 200
+
+    green_count = sum(
+        1 for sig in main.SIGNALS if main.signal_state[sig]["state"] == "green"
+    )
+    assert green_count == len(main.SIGNALS), (
+        f"expected all {len(main.SIGNALS)} signals green, got {green_count}"
+    )
+
+
+async def test_trend_amber_red_gap_at_least_10s(client, monkeypatch):
+    """7-Day Trend must leave ≥10s between voice amber and Day 7 red for narration."""
+    import asyncio
+    import main
+
+    voice_updates: list[tuple[float, str]] = []
+    original_broadcast = main._broadcast
+
+    async def capture_broadcast(event: dict) -> None:
+        if (
+            event.get("event") == "signal_update"
+            and event["payload"].get("signal") == "voice_checkin"
+        ):
+            voice_updates.append(
+                (time.monotonic(), event["payload"]["state"])
+            )
+        await original_broadcast(event)
+
+    monkeypatch.setattr(main, "_broadcast", capture_broadcast)
+
+    r = await client.post("/scenario/trend_7day")
+    assert r.status_code == 200
+
+    if main._scenario_task:
+        await asyncio.wait_for(main._scenario_task, timeout=35.0)
+
+    amber_times = [t for t, s in voice_updates if s == "amber"]
+    red_times = [t for t, s in voice_updates if s == "red"]
+    assert amber_times, f"expected voice amber update, got {voice_updates}"
+    assert red_times, f"expected voice red update, got {voice_updates}"
+    gap = min(red_times) - min(amber_times)
+    assert gap >= 10.0, f"amber→red gap {gap:.1f}s < 10s"
 
 
 async def test_scenario_resets_fall_active(client):

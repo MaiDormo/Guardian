@@ -30,6 +30,13 @@ ATE_DWELL_GREEN_S: int = 300   # >=300s → green; 0 < dwell < 300 → amber
 AMBER_TIMEOUT_PASSIVE_H: int = 4   # mmwave_*, baseline sources
 AMBER_TIMEOUT_ACTIVE_H: int = 2    # voice_system, pill_dispenser, gps_tracker
 
+# Took meds window (§5.1 row 3)
+TOOK_MEDS_DEADLINE_H: int = 11           # amber if no dispenser_opened by this hour
+TOOK_MEDS_RED_OVERDUE_MIN: int = 120     # strictly > 120 min overdue → red
+
+# Woke up absence (§5.1 row 1)
+WOKE_UP_AMBER_DEADLINE_H: int = 10       # amber if no bedroom motion by this hour
+
 # Wandering minimum outside-footprint time (§5.1 row 7, §5.4 schema)
 WANDER_MIN_MINUTES: int = 30
 

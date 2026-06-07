@@ -356,15 +356,31 @@ async def test_dispenser_opened_triggers_took_meds_green():
     assert meds[0]["payload"]["state"] == "green"
 
 
-async def test_dispenser_missed_triggers_took_meds_red():
-    """PRD § 5.1: dispenser_missed → took_meds red."""
+async def test_dispenser_missed_at_2h_boundary_is_amber():
+    """PRD § 5.1: exactly 2h overdue → amber (strictly >2h → red)."""
     events = await process({
         "event_type": "dispenser_missed",
         "source": "pill_dispenser",
-        "timestamp": "2026-06-06T11:00:00Z",
+        "timestamp": "2026-06-06T13:00:00Z",
         "confidence": 1.0,
         "payload": {"compartment": "morning",
                     "window_closed_at": "11:00", "minutes_overdue": 120},
+    })
+    sig_updates = events_of_type(events, "signal_update")
+    meds = [e for e in sig_updates if e["payload"]["signal"] == "took_meds"]
+    assert len(meds) >= 1
+    assert meds[0]["payload"]["state"] == "amber"
+
+
+async def test_dispenser_missed_over_2h_triggers_took_meds_red():
+    """PRD § 5.1: dispenser_missed beyond 2h window → took_meds red."""
+    events = await process({
+        "event_type": "dispenser_missed",
+        "source": "pill_dispenser",
+        "timestamp": "2026-06-06T13:01:00Z",
+        "confidence": 1.0,
+        "payload": {"compartment": "morning",
+                    "window_closed_at": "11:00", "minutes_overdue": 121},
     })
     sig_updates = events_of_type(events, "signal_update")
     meds = [e for e in sig_updates if e["payload"]["signal"] == "took_meds"]
@@ -535,10 +551,10 @@ async def test_ingest_and_broadcast_syncs_signal_state():
         await main._ingest_and_broadcast({
             "event_type": "dispenser_opened",
             "source": "pill_dispenser",
-            "timestamp": "2026-06-06T08:10:00Z",
+            "timestamp": "2026-06-06T08:17:00Z",
             "confidence": 1.0,
             "payload": {"compartment": "morning",
-                        "expected_window_start": "08:00", "delta_minutes": 10},
+                        "expected_window_start": "08:00", "delta_minutes": 17},
         })
 
         # signal_state must be updated — not just the SSE broadcast
