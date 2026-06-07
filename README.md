@@ -67,6 +67,12 @@ Pull the ethernet cable at any point — Guardian keeps reasoning. The `[● Run
 
 ---
 
+## Business Pitch
+
+[![Guardian Business Pitch](https://img.youtube.com/vi/eqB_3C7vQfU/0.jpg)](https://www.youtube.com/watch?v=eqB_3C7vQfU)
+
+---
+
 ## Architecture
 
 ```
