@@ -4,7 +4,15 @@
 
 Guardian turns passive mmWave radar sensors into eight human-readable daily signals for a family member monitoring an elderly parent living alone across the border. All reasoning runs locally — no cloud, no camera, no audio.
 
-> Built at StartHack Hong Kong 2026.
+> Built at StartHack Hong Kong 2026. See [HONESTY.md](./HONESTY.md) for full disclosure of what is real vs. mocked, pre-existing code, and known limitations.
+
+---
+
+### For judges — why this matters
+
+1.68 million Hongkongers are over 65. Many relocate across the border to Shenzhen/Guangzhou; their families stay in HK. Existing monitoring fails because it requires cameras (parents refuse), wearables (parents won't wear), or cloud infrastructure (cross-border data laws break it).
+
+Guardian is the first eldercare system designed for the person who won't use it — no cameras, no wearable, nothing to charge or configure. The radar is invisible. The parent changes nothing. The child gets daily reassurance and crisis alerts, all from on-device AI that works across any border.
 
 ---
 
@@ -122,11 +130,14 @@ python data/sim/radar_simulator.py --scenario fall
 ## Running tests
 
 ```bash
-pip install -r backend/requirements-dev.txt
-pytest -v
+# Backend tests (171)
+cd backend && pip install -r requirements-dev.txt && pytest -v
+
+# Frontend tests (120)
+cd web && npx vitest run
 ```
 
-140 tests covering PRD § 5.6 SSE schema compliance, all route contracts, signal state machine, agent cache, fall interrupt bypass, voice deviation module, synthetic voice data, and the `replay.py` 32-cell accuracy gate.
+290+ tests covering PRD § 5.6 SSE schema compliance, all route contracts, signal state machine, agent cache, fall interrupt bypass, voice deviation module, synthetic voice data, the `replay.py` 32-cell accuracy gate, plus frontend SSE integration, signal logic, and scenario player tests.
 
 ---
 
