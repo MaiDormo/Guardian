@@ -228,6 +228,7 @@ class GuardianAgent:
         self._ollama_ok = False
         self._current_scenario: str = "normal"
         self._signal_state: dict = {}
+        self._reasoning_snapshot: dict[str, dict] = {}
 
     async def initialise(self) -> None:
         try:
@@ -242,6 +243,18 @@ class GuardianAgent:
 
     def set_scenario(self, scenario: str) -> None:
         self._current_scenario = scenario
+        self.clear_reasoning_snapshot()
+
+    def clear_reasoning_snapshot(self) -> None:
+        self._reasoning_snapshot = {}
+
+    def reasoning_snapshot(self) -> list[dict]:
+        return list(self._reasoning_snapshot.values())
+
+    def _remember_reasoning(self, payload: dict) -> None:
+        signal = payload.get("signal")
+        if signal:
+            self._reasoning_snapshot[signal] = payload
 
     # ------------------------------------------------------------------
     # Cached reasoning lookup
@@ -374,6 +387,7 @@ class GuardianAgent:
             },
         }
 
+        self._remember_reasoning(sse_event["payload"])
         if self.broadcast:
             await self.broadcast(sse_event)
 
@@ -420,6 +434,7 @@ class GuardianAgent:
                 "updated_at": _next_ts(),
             },
         }
+        self._remember_reasoning(sse_event["payload"])
         if self.broadcast:
             await self.broadcast(sse_event)
 

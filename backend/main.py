@@ -610,6 +610,10 @@ async def status() -> dict:
     except Exception:
         pass
 
+    reasoning: list[dict] = []
+    if HAS_AGENT and _agent is not None:
+        reasoning = _agent.reasoning_snapshot()
+
     return {
         "on_device": True,
         "model": "gemma4:e4b",
@@ -618,6 +622,7 @@ async def status() -> dict:
         "ollama_host": OLLAMA_HOST,
         "clients_connected": len(_clients),
         "signals": signal_state,
+        "reasoning": reasoning,
         "dispatch": _dispatch_channel_status(),
     }
 
@@ -643,6 +648,14 @@ async def events(request: Request) -> EventSourceResponse:
                     "payload": {"signal": sig, **data},
                 }
                 yield {"data": json.dumps(snapshot)}
+
+        if HAS_AGENT and _agent is not None:
+            for payload in _agent.reasoning_snapshot():
+                yield {
+                    "data": json.dumps(
+                        {"event": "reasoning_update", "payload": payload}
+                    )
+                }
 
         if HAS_CONNECTION:
             try:

@@ -119,16 +119,22 @@ async function hydrateFromBackend(
     const status = await statusRes.json();
     const connection = connectionRes.ok ? await connectionRes.json() : null;
 
-    setState((prev) => ({
-      ...prev,
-      backendConnected: true,
-      sseHealth: "connected",
-      connectionWindowLoading: false,
-      signals: status.signals ? signalsFromStatus(status.signals) : prev.signals,
-      connectionWindow:
-        connection?.best_window ? connection : prev.connectionWindow,
-      dispatchChannels: status.dispatch ?? prev.dispatchChannels,
-    }));
+    setState((prev) => {
+      const hydratedReasoning = Array.isArray(status.reasoning)
+        ? (status.reasoning as ReasoningPayload[])
+        : prev.reasoning;
+      return {
+        ...prev,
+        backendConnected: true,
+        sseHealth: "connected",
+        connectionWindowLoading: false,
+        signals: status.signals ? signalsFromStatus(status.signals) : prev.signals,
+        reasoning: hydratedReasoning.length > 0 ? hydratedReasoning : prev.reasoning,
+        connectionWindow:
+          connection?.best_window ? connection : prev.connectionWindow,
+        dispatchChannels: status.dispatch ?? prev.dispatchChannels,
+      };
+    });
   } catch {
     setState((prev) => ({
       ...prev,

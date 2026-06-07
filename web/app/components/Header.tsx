@@ -85,7 +85,7 @@ export default function Header({
 
   return (
     <header className="header-masthead flex shrink-0 flex-col overflow-hidden rounded-2xl border border-primary/12">
-      <div className="grid grid-cols-1 items-center gap-4 px-4 py-3 lg:grid-cols-[minmax(0,1.15fr)_auto_minmax(0,1fr)]">
+      <div className="grid grid-cols-1 items-center gap-4 px-4 py-3 lg:grid-cols-[1fr_auto_1fr]">
         <div className="flex min-w-0 items-center gap-3">
           <div
             className={`relative size-12 shrink-0 rounded-full ring-2 ring-primary/15 ring-offset-2 ring-offset-background ${
